@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePermitApplications } from '@/hooks/usePermitApplications';
 import { useRegistryStaff } from './hooks/useRegistryStaff';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,8 +47,46 @@ export function PermitApplicationsList() {
     }
   };
 
-  const handleViewApplication = (applicationId: string) => {
-    navigate(`/registry/applications/${applicationId}`);
+  const handleViewApplication = async (applicationId: string) => {
+    try {
+      // Find or create the assessment for this application
+      const { data: existingAssessment } = await supabase
+        .from('initial_assessments')
+        .select('id')
+        .eq('permit_application_id', applicationId)
+        .maybeSingle();
+      
+      if (existingAssessment) {
+        navigate(`/registry/applications/${existingAssessment.id}`);
+      } else {
+        // Create assessment if it doesn't exist
+        const { data: newAssessment, error } = await supabase
+          .from('initial_assessments')
+          .insert({
+            permit_application_id: applicationId,
+            assessed_by: profile?.user_id || '00000000-0000-0000-0000-000000000000',
+            assessment_status: 'pending',
+            assessment_notes: 'Assessment created for review',
+            assessment_outcome: 'pending_review',
+            permit_activity_type: 'new_application'
+          })
+          .select('id')
+          .single();
+        
+        if (error) throw error;
+        
+        if (newAssessment) {
+          navigate(`/registry/applications/${newAssessment.id}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating/finding assessment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open application for review.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAssignOfficer = async (applicationId: string, officerId: string) => {

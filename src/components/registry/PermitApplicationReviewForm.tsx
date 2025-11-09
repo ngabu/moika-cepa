@@ -54,11 +54,11 @@ const STATUS_DISPLAY_TO_VALUE = Object.entries(ASSESSMENT_STATUS_OPTIONS).reduce
 }, {} as Record<string, keyof typeof ASSESSMENT_STATUS_OPTIONS>);
 
 interface PermitApplicationReviewFormProps {
-  applicationId?: string;
+  assessmentId?: string;
 }
 
-export function PermitApplicationReviewForm({ applicationId: propApplicationId }: PermitApplicationReviewFormProps) {
-  const { permitId: paramAssessmentId } = useParams<{ permitId: string }>();
+export function PermitApplicationReviewForm({ assessmentId: propAssessmentId }: PermitApplicationReviewFormProps) {
+  const { id: paramAssessmentId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -67,96 +67,47 @@ export function PermitApplicationReviewForm({ applicationId: propApplicationId }
   const [application, setApplication] = useState<any>(null);
   const [entityDetails, setEntityDetails] = useState<any>(null);
   const [appLoading, setAppLoading] = useState(true);
-  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  
+  // Use prop assessment ID first, then param
+  const assessmentId = propAssessmentId || paramAssessmentId;
 
   useEffect(() => {
     const fetchApplication = async () => {
-      console.log('PermitApplicationReviewForm - Fetching application...');
-      console.log('- propApplicationId:', propApplicationId);
-      console.log('- paramAssessmentId:', paramAssessmentId);
-      
+      if (!assessmentId) {
+        console.error('No assessment ID provided');
+        setApplication(null);
+        setAppLoading(false);
+        return;
+      }
+
       try {
-        let permitApplicationId: string | null = null;
-        let foundAssessmentId: string | null = null;
-
-        // If we have a direct application ID (from registry applications list)
-        if (propApplicationId) {
-          console.log('Using propApplicationId:', propApplicationId);
-          permitApplicationId = propApplicationId;
-          
-          // Try to find or create an assessment for this application
-          const { data: existingAssessment, error: assessmentError } = await supabase
-            .from('initial_assessments')
-            .select('id')
-            .eq('permit_application_id', propApplicationId)
-            .maybeSingle();
-          
-          console.log('Existing assessment check:', { existingAssessment, assessmentError });
-          
-          if (!assessmentError && existingAssessment) {
-            foundAssessmentId = existingAssessment.id;
-            console.log('Found existing assessment:', foundAssessmentId);
-          } else {
-            // Create a new assessment for this application
-            console.log('Creating new assessment for application:', propApplicationId);
-            const { data: newAssessment, error: createError } = await supabase
-              .from('initial_assessments')
-              .insert({
-                permit_application_id: propApplicationId,
-                assessed_by: profile?.user_id || '00000000-0000-0000-0000-000000000000',
-                assessment_status: 'pending',
-                assessment_notes: '',
-                assessment_outcome: '',
-              })
-              .select('id')
-              .single();
-            
-            console.log('Assessment creation result:', { newAssessment, createError });
-            
-            if (!createError && newAssessment) {
-              foundAssessmentId = newAssessment.id;
-              console.log('Created new assessment:', foundAssessmentId);
-            } else {
-              console.error('Failed to create assessment:', createError);
-            }
-          }
-        } 
-        // If we have an assessment ID (from old route)
-        else if (paramAssessmentId) {
-          foundAssessmentId = paramAssessmentId;
-          
-          const { data: assessmentData, error: assessmentError } = await supabase
-            .from('initial_assessments')
-            .select('permit_application_id')
-            .eq('id', paramAssessmentId)
-            .maybeSingle();
-            
-          if (!assessmentError && assessmentData) {
-            permitApplicationId = assessmentData.permit_application_id;
-          }
+        console.log('Fetching assessment and application for ID:', assessmentId);
+        
+        // Fetch the assessment to get the permit application ID
+        const { data: assessment, error: assessmentError } = await supabase
+          .from('initial_assessments')
+          .select('permit_application_id')
+          .eq('id', assessmentId)
+          .single();
+        
+        if (assessmentError) throw assessmentError;
+        
+        if (!assessment?.permit_application_id) {
+          throw new Error('Assessment has no linked permit application');
         }
 
-        setAssessmentId(foundAssessmentId);
-        console.log('Final assessment ID:', foundAssessmentId);
+        console.log('Found permit application ID:', assessment.permit_application_id);
 
-        if (!permitApplicationId) {
-          console.log('No permit application ID found');
-          setApplication(null);
-          setAppLoading(false);
-          return;
-        }
-
-        // Fetch the permit application with all details
-        console.log('Fetching permit application:', permitApplicationId);
+        // Fetch the full permit application details
         const { data, error } = await supabase
           .from('permit_applications')
           .select('*')
-          .eq('id', permitApplicationId)
-          .maybeSingle();
+          .eq('id', assessment.permit_application_id)
+          .single();
           
-        console.log('Permit application fetch result:', { data, error });
-        
         if (error) throw error;
+        
+        console.log('Successfully loaded application:', data?.title);
         setApplication(data);
 
         // Fetch entity details if entity_id exists
@@ -173,13 +124,19 @@ export function PermitApplicationReviewForm({ applicationId: propApplicationId }
         }
       } catch (error) {
         console.error('Error fetching application:', error);
+        toast({
+          title: "Error Loading Application",
+          description: "Failed to load the permit application details.",
+          variant: "destructive",
+        });
+        setApplication(null);
       } finally {
         setAppLoading(false);
       }
     };
     
     fetchApplication();
-  }, [propApplicationId, paramAssessmentId, profile?.user_id]);
+  }, [assessmentId]);
   
   const [assessmentData, setAssessmentData] = useState({
     assessment_status: '' as 'pending' | 'passed' | 'failed' | 'requires_clarification' | '',
@@ -190,16 +147,6 @@ export function PermitApplicationReviewForm({ applicationId: propApplicationId }
 
   const assessment = assessments.find(a => a.id === assessmentId);
   const isManager = profile?.staff_position && ['manager', 'director', 'managing_director'].includes(profile.staff_position);
-
-  // Find assessment by application ID if we don't have an assessment ID yet
-  useEffect(() => {
-    if (!assessmentId && application?.id && assessments.length > 0) {
-      const foundAssessment = assessments.find(a => a.permit_application_id === application.id);
-      if (foundAssessment) {
-        setAssessmentId(foundAssessment.id);
-      }
-    }
-  }, [assessmentId, application?.id, assessments]);
 
   // Load existing assessment data into form when assessment is found
   useEffect(() => {

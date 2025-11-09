@@ -5,7 +5,7 @@ import { PermitApplicationReviewForm } from '@/components/registry/PermitApplica
 export default function RegistryApplicationDetail() {
   const { id } = useParams<{ id: string }>();
   
-  console.log('RegistryApplicationDetail - Application ID:', id);
+  console.log('RegistryApplicationDetail - Assessment ID:', id);
   
   if (!id) {
     return (
@@ -13,7 +13,7 @@ export default function RegistryApplicationDetail() {
         <SimpleHeader />
         <div className="container mx-auto p-6">
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No application ID provided</p>
+            <p className="text-muted-foreground">No assessment ID provided</p>
           </div>
         </div>
       </div>
@@ -24,7 +24,7 @@ export default function RegistryApplicationDetail() {
     <div className="min-h-screen bg-background">
       <SimpleHeader />
       <div className="container mx-auto p-6">
-        <PermitApplicationReviewForm applicationId={id} />
+        <PermitApplicationReviewForm assessmentId={id} />
       </div>
     </div>
   );
