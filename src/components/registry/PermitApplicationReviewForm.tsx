@@ -53,8 +53,12 @@ const STATUS_DISPLAY_TO_VALUE = Object.entries(ASSESSMENT_STATUS_OPTIONS).reduce
   return acc;
 }, {} as Record<string, keyof typeof ASSESSMENT_STATUS_OPTIONS>);
 
-export function PermitApplicationReviewForm() {
-  const { permitId: assessmentId } = useParams<{ permitId: string }>();
+interface PermitApplicationReviewFormProps {
+  applicationId?: string;
+}
+
+export function PermitApplicationReviewForm({ applicationId: propApplicationId }: PermitApplicationReviewFormProps) {
+  const { permitId: paramAssessmentId } = useParams<{ permitId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -63,31 +67,74 @@ export function PermitApplicationReviewForm() {
   const [application, setApplication] = useState<any>(null);
   const [entityDetails, setEntityDetails] = useState<any>(null);
   const [appLoading, setAppLoading] = useState(true);
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchApplication = async () => {
-      if (!assessmentId) return;
-      
       try {
-        // First get the assessment to find the permit application ID
-        const { data: assessmentData, error: assessmentError } = await supabase
-          .from('initial_assessments')
-          .select('permit_application_id')
-          .eq('id', assessmentId)
-          .maybeSingle();
+        let permitApplicationId: string | null = null;
+        let foundAssessmentId: string | null = null;
+
+        // If we have a direct application ID (from registry applications list)
+        if (propApplicationId) {
+          permitApplicationId = propApplicationId;
           
-        if (assessmentError) throw assessmentError;
-        if (!assessmentData) {
+          // Try to find or create an assessment for this application
+          const { data: existingAssessment, error: assessmentError } = await supabase
+            .from('initial_assessments')
+            .select('id')
+            .eq('permit_application_id', propApplicationId)
+            .maybeSingle();
+          
+          if (!assessmentError && existingAssessment) {
+            foundAssessmentId = existingAssessment.id;
+          } else {
+            // Create a new assessment for this application
+            const { data: newAssessment, error: createError } = await supabase
+              .from('initial_assessments')
+              .insert({
+                permit_application_id: propApplicationId,
+                assessed_by: profile?.user_id || '00000000-0000-0000-0000-000000000000',
+                assessment_status: 'pending',
+                assessment_notes: '',
+                assessment_outcome: '',
+              })
+              .select('id')
+              .single();
+            
+            if (!createError && newAssessment) {
+              foundAssessmentId = newAssessment.id;
+            }
+          }
+        } 
+        // If we have an assessment ID (from old route)
+        else if (paramAssessmentId) {
+          foundAssessmentId = paramAssessmentId;
+          
+          const { data: assessmentData, error: assessmentError } = await supabase
+            .from('initial_assessments')
+            .select('permit_application_id')
+            .eq('id', paramAssessmentId)
+            .maybeSingle();
+            
+          if (!assessmentError && assessmentData) {
+            permitApplicationId = assessmentData.permit_application_id;
+          }
+        }
+
+        setAssessmentId(foundAssessmentId);
+
+        if (!permitApplicationId) {
           setApplication(null);
           setAppLoading(false);
           return;
         }
 
-        // Then fetch the permit application
+        // Fetch the permit application with all details
         const { data, error } = await supabase
           .from('permit_applications')
           .select('*')
-          .eq('id', (assessmentData as any).permit_application_id)
+          .eq('id', permitApplicationId)
           .maybeSingle();
           
         if (error) throw error;
@@ -113,7 +160,7 @@ export function PermitApplicationReviewForm() {
     };
     
     fetchApplication();
-  }, [assessmentId]);
+  }, [propApplicationId, paramAssessmentId, profile?.user_id]);
   
   const [assessmentData, setAssessmentData] = useState({
     assessment_status: '' as 'pending' | 'passed' | 'failed' | 'requires_clarification' | '',
@@ -124,6 +171,16 @@ export function PermitApplicationReviewForm() {
 
   const assessment = assessments.find(a => a.id === assessmentId);
   const isManager = profile?.staff_position && ['manager', 'director', 'managing_director'].includes(profile.staff_position);
+
+  // Find assessment by application ID if we don't have an assessment ID yet
+  useEffect(() => {
+    if (!assessmentId && application?.id && assessments.length > 0) {
+      const foundAssessment = assessments.find(a => a.permit_application_id === application.id);
+      if (foundAssessment) {
+        setAssessmentId(foundAssessment.id);
+      }
+    }
+  }, [assessmentId, application?.id, assessments]);
 
   // Load existing assessment data into form when assessment is found
   useEffect(() => {
