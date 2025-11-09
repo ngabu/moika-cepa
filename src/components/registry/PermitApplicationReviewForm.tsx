@@ -71,12 +71,17 @@ export function PermitApplicationReviewForm({ applicationId: propApplicationId }
 
   useEffect(() => {
     const fetchApplication = async () => {
+      console.log('PermitApplicationReviewForm - Fetching application...');
+      console.log('- propApplicationId:', propApplicationId);
+      console.log('- paramAssessmentId:', paramAssessmentId);
+      
       try {
         let permitApplicationId: string | null = null;
         let foundAssessmentId: string | null = null;
 
         // If we have a direct application ID (from registry applications list)
         if (propApplicationId) {
+          console.log('Using propApplicationId:', propApplicationId);
           permitApplicationId = propApplicationId;
           
           // Try to find or create an assessment for this application
@@ -86,10 +91,14 @@ export function PermitApplicationReviewForm({ applicationId: propApplicationId }
             .eq('permit_application_id', propApplicationId)
             .maybeSingle();
           
+          console.log('Existing assessment check:', { existingAssessment, assessmentError });
+          
           if (!assessmentError && existingAssessment) {
             foundAssessmentId = existingAssessment.id;
+            console.log('Found existing assessment:', foundAssessmentId);
           } else {
             // Create a new assessment for this application
+            console.log('Creating new assessment for application:', propApplicationId);
             const { data: newAssessment, error: createError } = await supabase
               .from('initial_assessments')
               .insert({
@@ -102,8 +111,13 @@ export function PermitApplicationReviewForm({ applicationId: propApplicationId }
               .select('id')
               .single();
             
+            console.log('Assessment creation result:', { newAssessment, createError });
+            
             if (!createError && newAssessment) {
               foundAssessmentId = newAssessment.id;
+              console.log('Created new assessment:', foundAssessmentId);
+            } else {
+              console.error('Failed to create assessment:', createError);
             }
           }
         } 
@@ -123,20 +137,25 @@ export function PermitApplicationReviewForm({ applicationId: propApplicationId }
         }
 
         setAssessmentId(foundAssessmentId);
+        console.log('Final assessment ID:', foundAssessmentId);
 
         if (!permitApplicationId) {
+          console.log('No permit application ID found');
           setApplication(null);
           setAppLoading(false);
           return;
         }
 
         // Fetch the permit application with all details
+        console.log('Fetching permit application:', permitApplicationId);
         const { data, error } = await supabase
           .from('permit_applications')
           .select('*')
           .eq('id', permitApplicationId)
           .maybeSingle();
           
+        console.log('Permit application fetch result:', { data, error });
+        
         if (error) throw error;
         setApplication(data);
 
