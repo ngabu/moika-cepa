@@ -48,17 +48,25 @@ export function PermitApplicationsList() {
   };
 
   const handleViewApplication = async (applicationId: string) => {
+    console.log('🔍 handleViewApplication called with applicationId:', applicationId);
+    
     try {
       // Find or create the assessment for this application
-      const { data: existingAssessment } = await supabase
+      const { data: existingAssessment, error: fetchError } = await supabase
         .from('initial_assessments')
         .select('id')
         .eq('permit_application_id', applicationId)
         .maybeSingle();
       
+      console.log('📋 Found existing assessment:', existingAssessment);
+      console.log('❌ Fetch error:', fetchError);
+      
       if (existingAssessment) {
+        console.log('✅ Navigating to existing assessment:', `/registry/applications/${existingAssessment.id}`);
         navigate(`/registry/applications/${existingAssessment.id}`);
       } else {
+        console.log('🆕 Creating new assessment for application:', applicationId);
+        
         // Create assessment if it doesn't exist
         const { data: newAssessment, error } = await supabase
           .from('initial_assessments')
@@ -73,14 +81,24 @@ export function PermitApplicationsList() {
           .select('id')
           .single();
         
-        if (error) throw error;
+        console.log('🆕 Created new assessment:', newAssessment);
+        console.log('❌ Creation error:', error);
+        
+        if (error) {
+          console.error('Failed to create assessment:', error);
+          throw error;
+        }
         
         if (newAssessment) {
+          console.log('✅ Navigating to new assessment:', `/registry/applications/${newAssessment.id}`);
           navigate(`/registry/applications/${newAssessment.id}`);
+        } else {
+          console.error('⚠️ No assessment created but no error');
+          throw new Error('Failed to create assessment - no data returned');
         }
       }
     } catch (error) {
-      console.error('Error creating/finding assessment:', error);
+      console.error('❌ Error in handleViewApplication:', error);
       toast({
         title: "Error",
         description: "Failed to open application for review.",
