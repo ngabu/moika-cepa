@@ -2,11 +2,9 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Calendar, FileText, MapPin, Cog, DollarSign, CheckCircle, AlertCircle, Save } from 'lucide-react';
+import { Calendar, FileText, MapPin, Cog, DollarSign, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { PermitSpecificFieldsStep } from './steps/PermitSpecificFieldsStep';
-import { useToast } from '@/hooks/use-toast';
+import { ComprehensivePermitDetailsReadOnly } from '@/components/registry/read-only/ComprehensivePermitDetailsReadOnly';
 
 interface Permit {
   id: string;
@@ -54,10 +52,6 @@ interface PermitDetailsReadOnlyViewProps {
 
 export function PermitDetailsReadOnlyView({ permit }: PermitDetailsReadOnlyViewProps) {
   const [documents, setDocuments] = useState<any[]>([]);
-  const [specificFieldsData, setSpecificFieldsData] = useState<any>((permit as any).permit_specific_fields || {});
-  const [isSavingSpecificFields, setIsSavingSpecificFields] = useState(false);
-  const { toast } = useToast();
-  const isDraft = permit.status === 'draft';
   
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -104,39 +98,6 @@ export function PermitDetailsReadOnlyView({ permit }: PermitDetailsReadOnlyViewP
     return `PGK ${amount.toLocaleString()}`;
   };
 
-  const handleSpecificFieldsChange = (updatedData: any) => {
-    setSpecificFieldsData(prev => ({ ...prev, ...updatedData }));
-  };
-
-  const handleSaveSpecificFields = async () => {
-    setIsSavingSpecificFields(true);
-    try {
-      const { error } = await supabase
-        .from('permit_applications')
-        .update({ 
-          // No longer updating permit_specific_fields as it's been removed
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', permit.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Saved Successfully",
-        description: "Permit-specific fields have been updated."
-      });
-    } catch (error) {
-      console.error('Error saving specific fields:', error);
-      toast({
-        title: "Save Failed",
-        description: "Failed to save permit-specific fields.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSavingSpecificFields(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -152,11 +113,12 @@ export function PermitDetailsReadOnlyView({ permit }: PermitDetailsReadOnlyViewP
       </div>
 
       <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 bg-glass border-glass">
+        <TabsList className="grid w-full grid-cols-7 bg-glass border-glass">
           <TabsTrigger value="basic" className="text-xs">Basic Info</TabsTrigger>
           <TabsTrigger value="classification" className="text-xs">Classification</TabsTrigger>
           <TabsTrigger value="location" className="text-xs">Location</TabsTrigger>
           <TabsTrigger value="technical" className="text-xs">Technical</TabsTrigger>
+          <TabsTrigger value="specific" className="text-xs">Permit Specific</TabsTrigger>
           <TabsTrigger value="financial" className="text-xs">Financial</TabsTrigger>
           <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
         </TabsList>
@@ -307,96 +269,66 @@ export function PermitDetailsReadOnlyView({ permit }: PermitDetailsReadOnlyViewP
         </TabsContent>
 
         <TabsContent value="technical" className="space-y-4">
-          {isDraft && (permit as any).permit_type_specific ? (
-            <div className="space-y-4">
-              <PermitSpecificFieldsStep
-                data={{
-                  permit_type_specific: (permit as any).permit_type_specific,
-                  permit_specific_fields: specificFieldsData
-                }}
-                onChange={handleSpecificFieldsChange}
-              />
-              
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handleSaveSpecificFields}
-                  disabled={isSavingSpecificFields}
-                  className="gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSavingSpecificFields ? 'Saving...' : 'Save Specific Fields'}
-                </Button>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center">
+                <Cog className="w-4 h-4 mr-2" />
+                Technical Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {permit.commencement_date && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Commencement Date</label>
+                    <p className="text-sm text-foreground">{formatDate(permit.commencement_date)}</p>
+                  </div>
+                )}
+
+                {permit.completion_date && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Completion Date</label>
+                    <p className="text-sm text-foreground">{formatDate(permit.completion_date)}</p>
+                  </div>
+                )}
+
+                {permit.estimated_cost_kina && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Estimated Project Cost</label>
+                    <p className="text-sm text-foreground">{formatCurrency(permit.estimated_cost_kina)}</p>
+                  </div>
+                )}
               </div>
-            </div>
-          ) : (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center">
-                  <Cog className="w-4 h-4 mr-2" />
-                  Technical Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {permit.operational_capacity && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Operational Capacity</label>
-                      <p className="text-sm text-foreground">{permit.operational_capacity}</p>
-                    </div>
-                  )}
-                  
-                  {permit.operating_hours && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Operating Hours</label>
-                      <p className="text-sm text-foreground">{permit.operating_hours}</p>
-                    </div>
-                  )}
 
-                  {permit.commencement_date && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Commencement Date</label>
-                      <p className="text-sm text-foreground">{formatDate(permit.commencement_date)}</p>
-                    </div>
-                  )}
-
-                  {permit.completion_date && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Completion Date</label>
-                      <p className="text-sm text-foreground">{formatDate(permit.completion_date)}</p>
-                    </div>
-                  )}
-
-                  {permit.estimated_cost_kina && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Estimated Project Cost</label>
-                      <p className="text-sm text-foreground">{formatCurrency(permit.estimated_cost_kina)}</p>
-                    </div>
-                  )}
+              {permit.environmental_impact && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Environmental Impact</label>
+                  <p className="text-sm mt-1 text-foreground">{permit.environmental_impact}</p>
                 </div>
+              )}
 
-                {permit.operational_details && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Operational Details</label>
-                    <p className="text-sm mt-1 text-foreground">{permit.operational_details}</p>
-                  </div>
-                )}
+              {permit.mitigation_measures && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Mitigation Measures</label>
+                  <p className="text-sm mt-1 text-foreground">{permit.mitigation_measures}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                {permit.environmental_impact && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Environmental Impact</label>
-                    <p className="text-sm mt-1 text-foreground">{permit.environmental_impact}</p>
-                  </div>
-                )}
-
-                {permit.mitigation_measures && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Mitigation Measures</label>
-                    <p className="text-sm mt-1 text-foreground">{permit.mitigation_measures}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+        <TabsContent value="specific" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center">
+                <Info className="w-4 h-4 mr-2" />
+                Permit-Specific Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ComprehensivePermitDetailsReadOnly application={permit} />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="financial" className="space-y-4">
