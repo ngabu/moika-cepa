@@ -941,6 +941,7 @@ export type Database = {
           draft_name: string | null
           entity_id: string | null
           estimated_cost_kina: number | null
+          existing_permit_id: string | null
           government_agreement: string | null
           id: string
           landowner_negotiation_status: string | null
@@ -963,6 +964,7 @@ export type Database = {
           draft_name?: string | null
           entity_id?: string | null
           estimated_cost_kina?: number | null
+          existing_permit_id?: string | null
           government_agreement?: string | null
           id?: string
           landowner_negotiation_status?: string | null
@@ -985,6 +987,7 @@ export type Database = {
           draft_name?: string | null
           entity_id?: string | null
           estimated_cost_kina?: number | null
+          existing_permit_id?: string | null
           government_agreement?: string | null
           id?: string
           landowner_negotiation_status?: string | null
@@ -1002,6 +1005,13 @@ export type Database = {
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intent_registration_drafts_existing_permit_id_fkey"
+            columns: ["existing_permit_id"]
+            isOneToOne: false
+            referencedRelation: "permit_applications"
             referencedColumns: ["id"]
           },
           {
@@ -1045,6 +1055,7 @@ export type Database = {
           departments_approached: string | null
           entity_id: string
           estimated_cost_kina: number | null
+          existing_permit_id: string | null
           government_agreement: string | null
           id: string
           landowner_negotiation_status: string | null
@@ -1071,6 +1082,7 @@ export type Database = {
           departments_approached?: string | null
           entity_id: string
           estimated_cost_kina?: number | null
+          existing_permit_id?: string | null
           government_agreement?: string | null
           id?: string
           landowner_negotiation_status?: string | null
@@ -1097,6 +1109,7 @@ export type Database = {
           departments_approached?: string | null
           entity_id?: string
           estimated_cost_kina?: number | null
+          existing_permit_id?: string | null
           government_agreement?: string | null
           id?: string
           landowner_negotiation_status?: string | null
@@ -1119,6 +1132,13 @@ export type Database = {
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intent_registrations_existing_permit_id_fkey"
+            columns: ["existing_permit_id"]
+            isOneToOne: false
+            referencedRelation: "permit_applications"
             referencedColumns: ["id"]
           },
           {
@@ -1371,12 +1391,12 @@ export type Database = {
           effluent_discharge_details: Json | null
           eia_required: boolean | null
           eis_required: boolean | null
-          emergency_discharge_details: Json | null
           entity_id: string | null
           entity_name: string | null
           entity_type: string | null
           environmental_impact: string | null
           estimated_cost_kina: number | null
+          existing_permit_id: string | null
           existing_permits_details: string | null
           expiry_date: string | null
           fee_amount: number | null
@@ -1391,10 +1411,8 @@ export type Database = {
           infrastructure_details: Json | null
           is_draft: boolean | null
           land_clearing_details: Json | null
-          land_type: string | null
           landowner_negotiation_status: string | null
           legal_declaration_accepted: boolean | null
-          legal_description: string | null
           mandatory_fields_complete: boolean | null
           marine_dumping_details: Json | null
           mining_chemical_details: Json | null
@@ -1407,18 +1425,17 @@ export type Database = {
           operating_hours: string | null
           operational_capacity: string | null
           operational_details: string | null
-          other_permit_details: Json | null
-          owner_name: string | null
           payment_status: string | null
           permit_category: string | null
           permit_number: string | null
           permit_period: string | null
-          permit_specific_fields: Json | null
           permit_type: string
           permit_type_id: string | null
           permit_type_specific: string | null
           pesticide_details: Json | null
-          proposed_works_description: string | null
+          project_description: string | null
+          project_end_date: string | null
+          project_start_date: string | null
           public_consultation_proof: Json | null
           rehabilitation_details: Json | null
           renewable_energy_details: Json | null
@@ -1428,7 +1445,6 @@ export type Database = {
           solid_waste_details: Json | null
           status: string
           stormwater_details: Json | null
-          tenure: string | null
           title: string
           updated_at: string
           uploaded_files: Json | null
@@ -1473,12 +1489,12 @@ export type Database = {
           effluent_discharge_details?: Json | null
           eia_required?: boolean | null
           eis_required?: boolean | null
-          emergency_discharge_details?: Json | null
           entity_id?: string | null
           entity_name?: string | null
           entity_type?: string | null
           environmental_impact?: string | null
           estimated_cost_kina?: number | null
+          existing_permit_id?: string | null
           existing_permits_details?: string | null
           expiry_date?: string | null
           fee_amount?: number | null
@@ -1493,10 +1509,8 @@ export type Database = {
           infrastructure_details?: Json | null
           is_draft?: boolean | null
           land_clearing_details?: Json | null
-          land_type?: string | null
           landowner_negotiation_status?: string | null
           legal_declaration_accepted?: boolean | null
-          legal_description?: string | null
           mandatory_fields_complete?: boolean | null
           marine_dumping_details?: Json | null
           mining_chemical_details?: Json | null
@@ -1509,18 +1523,17 @@ export type Database = {
           operating_hours?: string | null
           operational_capacity?: string | null
           operational_details?: string | null
-          other_permit_details?: Json | null
-          owner_name?: string | null
           payment_status?: string | null
           permit_category?: string | null
           permit_number?: string | null
           permit_period?: string | null
-          permit_specific_fields?: Json | null
           permit_type: string
           permit_type_id?: string | null
           permit_type_specific?: string | null
           pesticide_details?: Json | null
-          proposed_works_description?: string | null
+          project_description?: string | null
+          project_end_date?: string | null
+          project_start_date?: string | null
           public_consultation_proof?: Json | null
           rehabilitation_details?: Json | null
           renewable_energy_details?: Json | null
@@ -1530,7 +1543,6 @@ export type Database = {
           solid_waste_details?: Json | null
           status?: string
           stormwater_details?: Json | null
-          tenure?: string | null
           title: string
           updated_at?: string
           uploaded_files?: Json | null
@@ -1575,12 +1587,12 @@ export type Database = {
           effluent_discharge_details?: Json | null
           eia_required?: boolean | null
           eis_required?: boolean | null
-          emergency_discharge_details?: Json | null
           entity_id?: string | null
           entity_name?: string | null
           entity_type?: string | null
           environmental_impact?: string | null
           estimated_cost_kina?: number | null
+          existing_permit_id?: string | null
           existing_permits_details?: string | null
           expiry_date?: string | null
           fee_amount?: number | null
@@ -1595,10 +1607,8 @@ export type Database = {
           infrastructure_details?: Json | null
           is_draft?: boolean | null
           land_clearing_details?: Json | null
-          land_type?: string | null
           landowner_negotiation_status?: string | null
           legal_declaration_accepted?: boolean | null
-          legal_description?: string | null
           mandatory_fields_complete?: boolean | null
           marine_dumping_details?: Json | null
           mining_chemical_details?: Json | null
@@ -1611,18 +1621,17 @@ export type Database = {
           operating_hours?: string | null
           operational_capacity?: string | null
           operational_details?: string | null
-          other_permit_details?: Json | null
-          owner_name?: string | null
           payment_status?: string | null
           permit_category?: string | null
           permit_number?: string | null
           permit_period?: string | null
-          permit_specific_fields?: Json | null
           permit_type?: string
           permit_type_id?: string | null
           permit_type_specific?: string | null
           pesticide_details?: Json | null
-          proposed_works_description?: string | null
+          project_description?: string | null
+          project_end_date?: string | null
+          project_start_date?: string | null
           public_consultation_proof?: Json | null
           rehabilitation_details?: Json | null
           renewable_energy_details?: Json | null
@@ -1632,7 +1641,6 @@ export type Database = {
           solid_waste_details?: Json | null
           status?: string
           stormwater_details?: Json | null
-          tenure?: string | null
           title?: string
           updated_at?: string
           uploaded_files?: Json | null
@@ -1675,6 +1683,13 @@ export type Database = {
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permit_applications_existing_permit_id_fkey"
+            columns: ["existing_permit_id"]
+            isOneToOne: false
+            referencedRelation: "permit_applications"
             referencedColumns: ["id"]
           },
           {
@@ -2125,7 +2140,7 @@ export type Database = {
         Args: {
           p_activity_id: string
           p_custom_processing_days?: number
-          p_permit_type: string
+          p_permit_type?: string
         }
         Returns: number
       }

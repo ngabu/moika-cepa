@@ -14,7 +14,7 @@ import ComplianceTab from '@/components/permit-application-form/ComplianceTab';
 import { ActivityClassificationStep } from '@/components/public/steps/ActivityClassificationStep';
 import { ApplicationFeeStep } from '@/components/public/steps/ApplicationFeeStep';
 import { PublicConsultationStep } from '@/components/public/steps/PublicConsultationStep';
-import { PermitSpecificFieldsStep } from '@/components/public/steps/PermitSpecificFieldsStep';
+
 import { ReviewSubmitStep } from '@/components/public/steps/ReviewSubmitStep';
 
 const generateApplicationNumber = () => {
@@ -76,8 +76,9 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
     entity_type: '', // Add this field for document requirements
     entity_id: '', // Add entity_id field
     entity_name: '', // Add entity_name field
-    permit_category: '', // Add permit category for PermitSpecificFieldsStep
-    permit_type_id: '', // Add permit type ID for PermitSpecificFieldsStep
+    existing_permit_id: null, // Add existing permit reference
+    permit_category: '',
+    permit_type_id: '',
     // PNG Environment Act 2000 fields - Public Consultation
     public_consultation_proof: [],
     consultation_period_start: '',
@@ -85,8 +86,6 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
     // PNG Environment Act 2000 fields - Fees
     fee_amount: 0,
     fee_breakdown: null,
-    // PNG Environment Act 2000 fields - Dynamic Permit-Specific Fields (replaces legacy columns)
-    permit_specific_fields: {}, // All dynamic permit-specific fields stored here
     // PNG Environment Act 2000 fields - Requirements & Legal
     eia_required: false,
     eis_required: false,
@@ -120,28 +119,27 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
           
           if (data) {
             console.log('📥 Loading existing draft:', data);
-            // Map database fields back to form data
             setFormData({
               applicationNumber: data.application_number || '',
               applicationTitle: data.title || '',
-              applicantName: data.owner_name || '',
+              applicantName: '', // Not stored in DB
               applicantEmail: '', // Not stored in DB currently
               applicantPhone: '', // Not stored in DB currently
               organizationName: data.entity_name || '',
-              projectDescription: data.description || '',
+              projectDescription: data.project_description || data.description || '',
               projectLocation: data.activity_location || '',
               coordinates: (typeof data.coordinates === 'object' && data.coordinates && 'lat' in data.coordinates) 
                 ? data.coordinates as { lat: number; lng: number }
                 : { lat: -6.314993, lng: 143.95555 },
-              // Land Information fields
-              land_type: data.land_type || '',
-              owner_name: data.owner_name || '',
-              legal_description: data.legal_description || '',
-              tenure: data.tenure || '',
+              // Land Information fields - not available in current schema
+              land_type: '',
+              owner_name: '',
+              legal_description: '',
+              tenure: '',
               prescribedActivity: data.permit_type || '',
               feeCategory: 'Green Category',
-              projectStartDate: data.commencement_date || '',
-              projectEndDate: data.completion_date || '',
+              projectStartDate: data.project_start_date || data.commencement_date || '',
+              projectEndDate: data.project_end_date || data.completion_date || '',
               environmentalImpact: data.environmental_impact || '',
               mitigationMeasures: data.mitigation_measures || '',
               uploadedFiles: Array.isArray(data.uploaded_files) ? data.uploaded_files : [],
@@ -154,14 +152,14 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
               entity_type: data.entity_type || '', // Add entity_type mapping
               entity_id: data.entity_id || '', // Add entity_id mapping
               entity_name: data.entity_name || '', // Add entity_name mapping
-              permit_category: data.permit_category || '', // Add permit_category
-              permit_type_id: data.permit_type_id || '', // Add permit_type_id
+              existing_permit_id: data.existing_permit_id || null, // Add existing permit mapping
+              permit_category: data.permit_category || '',
+              permit_type_id: data.permit_type_id || '',
               public_consultation_proof: Array.isArray(data.public_consultation_proof) ? data.public_consultation_proof : [],
               consultation_period_start: data.consultation_period_start || '',
               consultation_period_end: data.consultation_period_end || '',
               fee_amount: data.fee_amount || 0,
               fee_breakdown: data.fee_breakdown,
-              permit_specific_fields: (typeof data.permit_specific_fields === 'object' && data.permit_specific_fields) ? data.permit_specific_fields : {},
               eia_required: data.eia_required || false,
               eis_required: data.eis_required || false,
               legal_declaration_accepted: data.legal_declaration_accepted || false,
@@ -217,9 +215,6 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
       
       // Handle single field update
       const fieldName = field as string;
-      if (fieldName === 'permit_specific_fields') {
-        console.log('📝 PERMIT SPECIFIC FIELDS UPDATE:', value);
-      }
       
       const newFormData = {
         ...prev,
@@ -246,7 +241,6 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
     try {
       console.log('🚀 handleSubmit called with isDraft:', isDraft);
       console.log('🚀 Current formData:', formData);
-      console.log('📝 SAVING permit_specific_fields:', formData.permit_specific_fields);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -277,24 +271,23 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
         description: formData.projectDescription,
         status: isDraft ? 'draft' : 'submitted',
         user_id: user.id,
-        entity_id: formData.entity_id || null, // Add entity_id to save
+        entity_id: formData.entity_id || null,
         entity_name: formData.entity_name || formData.organizationName,
         entity_type: formData.entity_type || (formData.organizationName ? 'COMPANY' : 'INDIVIDUAL'),
-        // Land Information fields
-        land_type: formData.land_type || null,
-        owner_name: formData.owner_name || formData.applicantName,
-        legal_description: formData.legal_description || formData.projectDescription,
-        tenure: formData.tenure || null,
-        proposed_works_description: formData.projectDescription,
+        existing_permit_id: formData.existing_permit_id || null,
+        // Project details - use correct database columns
+        project_description: formData.projectDescription,
+        project_start_date: formData.projectStartDate || null,
+        project_end_date: formData.projectEndDate || null,
+        environmental_impact: formData.environmentalImpact || null,
+        mitigation_measures: formData.mitigationMeasures || null,
         activity_location: formData.projectLocation,
         estimated_cost_kina: 0,
-        environmental_impact: formData.environmentalImpact,
-        mitigation_measures: formData.mitigationMeasures,
         compliance_checks: formData.complianceChecks,
         coordinates: formData.coordinates,
         uploaded_files: formData.uploadedFiles,
         is_draft: isDraft,
-        current_step: 10, // Updated to include all 10 steps
+        current_step: 10,
         application_number: generatedAppNumber,
         application_date: isDraft ? null : new Date().toISOString(),
         // PNG Environment Act 2000 fields - Activity Classification & Requirements
@@ -303,15 +296,14 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
         activity_category: formData.activity_category || null,
         activity_subcategory: formData.activity_subcategory || null,
         activity_classification: formData.activity_description || null,
-        permit_category: formData.permit_category || null, // Save permit_category
-        permit_type_id: formData.permit_type_id || null, // Save permit_type_id
+        permit_category: formData.permit_category || null,
+        permit_type_id: formData.permit_type_id || null,
         eia_required: formData.eia_required,
         eis_required: formData.eis_required,
         // PNG Environment Act 2000 fields - Public Consultation
         public_consultation_proof: formData.public_consultation_proof,
         consultation_period_start: formData.consultation_period_start || null,
         consultation_period_end: formData.consultation_period_end || null,
-        permit_specific_fields: formData.permit_specific_fields,
         // PNG Environment Act 2000 fields - Legal Compliance
         legal_declaration_accepted: formData.legal_declaration_accepted,
         compliance_commitment: formData.compliance_commitment,
@@ -576,7 +568,7 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
         />
       </div>
     ),
-    permitspecific: <PermitSpecificFieldsStep data={formData} onChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))} />,
+    
     compliance: (
       <div className="space-y-4">
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -638,11 +630,6 @@ export function ComprehensivePermitForm({ permitId, onSuccess, onCancel, isStand
               <MapPin className="w-4 h-4" />
               <span className="hidden sm:inline">Location</span>
               <span className="sm:hidden">Location</span>
-            </TabsTrigger>
-            <TabsTrigger value="permitspecific" className="flex flex-col items-center gap-1 text-xs h-auto py-2">
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Permit Details</span>
-              <span className="sm:hidden">Details</span>
             </TabsTrigger>
             <TabsTrigger value="consultation" className="flex flex-col items-center gap-1 text-xs h-auto py-2">
               <Users className="w-4 h-4" />
