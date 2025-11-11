@@ -434,7 +434,7 @@ export function IntentRegistrationNew() {
                           <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          <p>Select an existing permit if this intent is related to an amendment, renewal, or transfer.</p>
+                          <p>Link this registration to an approved permit that this entity holds.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
