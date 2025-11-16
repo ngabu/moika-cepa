@@ -52,7 +52,7 @@ const RegistryDashboard = () => {
   }, [assessments]);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-background">
         <RegistrySidebar activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="flex-1 flex flex-col">
