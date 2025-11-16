@@ -92,20 +92,29 @@ export function PermitComplianceReview() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-card-foreground">Permit Compliance Reviews</h2>
-        <p className="text-muted-foreground">Review and assess permit compliance reports</p>
-      </div>
-
-      {/* Compliance Reports List */}
+    <>
       <Card>
         <CardHeader>
-          <CardTitle>Submitted Compliance Reports</CardTitle>
+          <CardTitle className="flex items-center">
+            <ShieldCheck className="w-5 h-5 mr-2" />
+            Permit Compliance Reviews ({complianceReports.length})
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Review and assess permit compliance reports
+          </p>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {complianceReports.map((report) => (
+        <CardContent className="space-y-4">
+          {complianceReports.length === 0 ? (
+            <div className="text-center py-12">
+              <ShieldCheck className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">No compliance reports</h3>
+              <p className="text-muted-foreground">
+                No compliance reports have been submitted yet.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {complianceReports.map((report) => (
               <div
                 key={report.id}
                 onClick={() => setSelectedReport(report.id)}
@@ -141,6 +150,7 @@ export function PermitComplianceReview() {
               </div>
             ))}
           </div>
+        )}
         </CardContent>
       </Card>
 
@@ -313,6 +323,6 @@ export function PermitComplianceReview() {
           </Card>
         </>
       )}
-    </div>
+    </>
   );
 }
