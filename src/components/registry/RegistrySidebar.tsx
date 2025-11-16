@@ -95,7 +95,7 @@ export function RegistrySidebar({ activeTab, onTabChange }: RegistrySidebarProps
 
   return (
     <Sidebar
-      className="w-64 border-r border-white/30 bg-primary/95 backdrop-blur-2xl shadow-xl"
+      className="w-80 border-r border-white/30 bg-primary/95 backdrop-blur-2xl shadow-xl"
       collapsible="icon"
     >
       <SidebarContent className="p-0 bg-gradient-to-b from-primary/90 to-primary/80 backdrop-blur-2xl">
