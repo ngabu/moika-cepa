@@ -2317,8 +2317,12 @@ export type Database = {
         }[]
       }
       get_prescribed_activities: { Args: never; Returns: Json }
+      get_user_staff_position: { Args: never; Returns: string }
+      get_user_staff_unit: { Args: never; Returns: string }
+      get_user_type: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_super_admin: { Args: never; Returns: boolean }
+      is_admin_or_super_admin_user: { Args: never; Returns: boolean }
       is_admin_user: { Args: never; Returns: boolean }
       is_public_user: { Args: never; Returns: boolean }
       is_registry_staff: { Args: never; Returns: boolean }
