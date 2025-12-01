@@ -371,45 +371,6 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
             )}
           </div>
 
-          {/* Review Information (if available) */}
-          {intent.reviewed_by && (
-            <>
-              <Separator />
-              <div className="bg-muted/30 p-4 rounded-lg space-y-3">
-                <h3 className="text-lg font-semibold">Review Information</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Reviewed By</Label>
-                    <p className="text-sm mt-1">
-                      {intent.reviewer?.first_name} {intent.reviewer?.last_name}
-                    </p>
-                    {intent.reviewer?.email && (
-                      <p className="text-sm text-muted-foreground">{intent.reviewer.email}</p>
-                    )}
-                  </div>
-                  
-                  {intent.reviewed_at && (
-                    <div>
-                      <Label>Review Date</Label>
-                      <p className="text-sm mt-1">
-                        {format(new Date(intent.reviewed_at), 'MMMM dd, yyyy h:mm a')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {intent.review_notes && (
-                  <div>
-                    <Label>Official Review Notes</Label>
-                    <p className="text-sm mt-2 text-muted-foreground whitespace-pre-wrap">
-                      {intent.review_notes}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
         </CardContent>
       </Card>
     </div>
