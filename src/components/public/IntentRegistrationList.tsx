@@ -214,7 +214,7 @@ export function IntentRegistrationList() {
                                 <Separator className="my-6" />
                                 <Card className="bg-muted/30">
                                   <CardHeader>
-                                    <CardTitle className="text-lg">Official Feedback</CardTitle>
+                                    <CardTitle className="text-lg">Official Feedback from CEPA</CardTitle>
                                   </CardHeader>
                                   <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
