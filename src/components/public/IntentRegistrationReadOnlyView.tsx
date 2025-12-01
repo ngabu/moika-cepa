@@ -156,7 +156,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Entity</Label>
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
                     {intent.entity?.entity_type === 'company' ? (
                       <Building className="w-5 h-5 text-primary" />
                     ) : (
@@ -173,7 +173,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
 
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Activity Level</Label>
-                  <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="p-3 bg-primary/10 rounded-lg">
                     <Badge variant="outline">{intent.activity_level}</Badge>
                   </div>
                 </div>
@@ -181,14 +181,14 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
 
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Activity Description</Label>
-                <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="p-3 bg-primary/10 rounded-lg">
                   <p className="text-sm">{intent.activity_description}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Preparatory Work Description</Label>
-                <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="p-3 bg-primary/10 rounded-lg">
                   <p className="text-sm whitespace-pre-wrap">{intent.preparatory_work_description}</p>
                 </div>
               </div>
@@ -199,7 +199,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                     <Calendar className="w-4 h-4" />
                     Commencement Date
                   </Label>
-                  <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="p-3 bg-primary/10 rounded-lg">
                     <p className="text-sm">{format(new Date(intent.commencement_date), 'MMMM dd, yyyy')}</p>
                   </div>
                 </div>
@@ -209,7 +209,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                     <Calendar className="w-4 h-4" />
                     Completion Date
                   </Label>
-                  <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="p-3 bg-primary/10 rounded-lg">
                     <p className="text-sm">{format(new Date(intent.completion_date), 'MMMM dd, yyyy')}</p>
                   </div>
                 </div>
@@ -232,7 +232,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                 {intent.project_site_address && (
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Project Site Address</Label>
-                    <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-sm">{intent.project_site_address}</p>
                     </div>
                   </div>
@@ -241,7 +241,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                 {intent.project_site_description && (
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Site Description</Label>
-                    <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-sm whitespace-pre-wrap">{intent.project_site_description}</p>
                     </div>
                   </div>
@@ -250,7 +250,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                 {intent.site_ownership_details && (
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Site Ownership Details</Label>
-                    <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-sm whitespace-pre-wrap">{intent.site_ownership_details}</p>
                     </div>
                   </div>
@@ -274,7 +274,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                 {intent.government_agreement && (
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Agreement with Government of PNG</Label>
-                    <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-sm whitespace-pre-wrap">{intent.government_agreement}</p>
                     </div>
                   </div>
@@ -283,7 +283,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                 {intent.departments_approached && (
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Departments/Statutory Bodies Approached</Label>
-                    <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-sm whitespace-pre-wrap">{intent.departments_approached}</p>
                     </div>
                   </div>
@@ -292,7 +292,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                 {intent.approvals_required && (
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Other Formal Government Approvals Required</Label>
-                    <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-sm whitespace-pre-wrap">{intent.approvals_required}</p>
                     </div>
                   </div>
@@ -301,7 +301,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                 {intent.landowner_negotiation_status && (
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Landowner Negotiation Status</Label>
-                    <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-sm whitespace-pre-wrap">{intent.landowner_negotiation_status}</p>
                     </div>
                   </div>
@@ -348,7 +348,7 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
             ) : (
               <div className="space-y-2">
                 {documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div key={doc.id} className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <FileText className="w-4 h-4 text-primary flex-shrink-0" />
                       <div className="min-w-0 flex-1">

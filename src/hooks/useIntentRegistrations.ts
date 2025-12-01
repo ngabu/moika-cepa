@@ -25,6 +25,7 @@ export interface IntentRegistration {
   landowner_negotiation_status: string | null;
   estimated_cost_kina: number | null;
   prescribed_activity_id: string | null;
+  project_boundary: any | null;
   created_at: string;
   updated_at: string;
   entity?: {
