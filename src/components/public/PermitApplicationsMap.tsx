@@ -258,8 +258,8 @@ export function PermitApplicationsMap({
       visualizePitch: false
     }), 'top-right');
 
-    // Initialize Mapbox Draw only if drawing tools are not hidden
-    if (!hideDrawingTools) {
+    // Initialize Mapbox Draw only if drawing tools are not hidden and not in read-only mode
+    if (!hideDrawingTools && !readOnly) {
       const drawInstance = new MapboxDraw({
         displayControlsDefault: false,
         controls: {
@@ -1777,8 +1777,8 @@ export function PermitApplicationsMap({
         </div>
       </CardHeader>
       <CardContent className="relative space-y-4">
-        {/* Drawing Tool Info and File Upload - Hidden when hideDrawingTools is true */}
-        {!hideDrawingTools && (
+        {/* Drawing Tool Info and File Upload - Hidden when hideDrawingTools is true or readOnly */}
+        {!hideDrawingTools && !readOnly && (
           <div className="grid md:grid-cols-2 gap-4">
             <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
               <div className="flex items-start gap-2 text-sm">
@@ -1822,37 +1822,39 @@ export function PermitApplicationsMap({
               <Layers className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium">GIS Layers</span>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                // Check if any layer is currently enabled
-                const anyEnabled = showDistricts || showLLGs || 
-                                  Object.values(dbGISLayerToggles).some(v => v) || 
-                                  (uploadedAOI && showUploadedAOI);
-                
-                // If any is enabled, disable all. Otherwise, enable all
-                const targetState = !anyEnabled;
-                
-                setShowDistricts(targetState);
-                setShowLLGs(targetState);
-                
-                if (dbGISLayers.length > 0) {
-                  const newToggles: {[key: string]: boolean} = {};
-                  dbGISLayers.forEach(layer => {
-                    newToggles[layer.id] = targetState;
-                  });
-                  setDbGISLayerToggles(newToggles);
-                }
-                
-                if (uploadedAOI) {
-                  setShowUploadedAOI(targetState);
-                }
-              }}
-              className="h-7 text-xs"
-            >
-              {(!showDistricts && !showLLGs && Object.values(dbGISLayerToggles).every(v => !v) && (!uploadedAOI || !showUploadedAOI)) ? 'Enable All' : 'Disable All'}
-            </Button>
+            {!readOnly && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  // Check if any layer is currently enabled
+                  const anyEnabled = showDistricts || showLLGs || 
+                                    Object.values(dbGISLayerToggles).some(v => v) || 
+                                    (uploadedAOI && showUploadedAOI);
+                  
+                  // If any is enabled, disable all. Otherwise, enable all
+                  const targetState = !anyEnabled;
+                  
+                  setShowDistricts(targetState);
+                  setShowLLGs(targetState);
+                  
+                  if (dbGISLayers.length > 0) {
+                    const newToggles: {[key: string]: boolean} = {};
+                    dbGISLayers.forEach(layer => {
+                      newToggles[layer.id] = targetState;
+                    });
+                    setDbGISLayerToggles(newToggles);
+                  }
+                  
+                  if (uploadedAOI) {
+                    setShowUploadedAOI(targetState);
+                  }
+                }}
+                className="h-7 text-xs"
+              >
+                {(!showDistricts && !showLLGs && Object.values(dbGISLayerToggles).every(v => !v) && (!uploadedAOI || !showUploadedAOI)) ? 'Enable All' : 'Disable All'}
+              </Button>
+            )}
           </div>
 
           {/* Boundary Layers */}
@@ -1864,6 +1866,7 @@ export function PermitApplicationsMap({
                   id="districts"
                   checked={showDistricts}
                   onCheckedChange={setShowDistricts}
+                  disabled={readOnly}
                   className="scale-75"
                 />
                 <Label htmlFor="districts" className="text-xs cursor-pointer flex items-center gap-1.5">
@@ -1876,6 +1879,7 @@ export function PermitApplicationsMap({
                   id="llgs"
                   checked={showLLGs}
                   onCheckedChange={setShowLLGs}
+                  disabled={readOnly}
                   className="scale-75"
                 />
                 <Label htmlFor="llgs" className="text-xs cursor-pointer flex items-center gap-1.5">
@@ -1899,6 +1903,7 @@ export function PermitApplicationsMap({
                       onCheckedChange={(checked) => 
                         setDbGISLayerToggles(prev => ({ ...prev, [layer.id]: checked }))
                       }
+                      disabled={readOnly}
                       className="scale-75"
                     />
                     <Label htmlFor={`db-layer-${layer.id}`} className="text-xs cursor-pointer flex items-center gap-1.5">
@@ -1920,6 +1925,7 @@ export function PermitApplicationsMap({
                   id="uploaded-aoi"
                   checked={showUploadedAOI}
                   onCheckedChange={setShowUploadedAOI}
+                  disabled={readOnly}
                   className="scale-75"
                 />
                 <Label htmlFor="uploaded-aoi" className="text-xs cursor-pointer flex items-center gap-1.5">

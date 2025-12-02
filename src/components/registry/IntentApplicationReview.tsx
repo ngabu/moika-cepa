@@ -33,6 +33,8 @@ interface IntentRegistration {
   updated_at: string;
   official_feedback_attachments: any[] | null;
   project_site_address: string | null;
+  district: string | null;
+  province: string | null;
   project_site_description: string | null;
   site_ownership_details: string | null;
   government_agreement: string | null;

@@ -39,6 +39,7 @@ interface IntentRegistration {
   review_notes: string | null;
   official_feedback_attachments: any[] | null;
   prescribed_activity_id: string | null;
+  existing_permit_id: string | null;
   project_boundary: any | null;
   entity?: {
     id: string;
