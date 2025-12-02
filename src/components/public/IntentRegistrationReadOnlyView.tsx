@@ -28,10 +28,10 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [openSections, setOpenSections] = useState({
-    registration: true,
-    projectSite: true,
-    stakeholder: true,
-    financial: true,
+    registration: false,
+    projectSite: false,
+    stakeholder: false,
+    financial: false,
   });
 
   const toggleSection = (section: keyof typeof openSections) => {
