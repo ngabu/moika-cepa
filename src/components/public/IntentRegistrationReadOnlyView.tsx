@@ -179,6 +179,15 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                 </div>
               </div>
 
+              {intent.prescribed_activity_id && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Prescribed Activity</Label>
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <p className="text-sm">{intent.prescribed_activity_id}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Activity Description</Label>
                 <div className="p-3 bg-primary/10 rounded-lg">
@@ -218,50 +227,61 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
           </Collapsible>
 
           {/* Project Site Information */}
-          {(intent.project_site_address || intent.project_site_description || intent.site_ownership_details) && (
-            <Collapsible open={openSections.projectSite} onOpenChange={() => toggleSection('projectSite')} className="pt-6 border-t border-glass">
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 hover:bg-muted/50 rounded-lg transition-colors">
-                <h3 className="text-lg font-semibold">Project Site Information</h3>
-                {openSections.projectSite ? (
-                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                )}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-4 space-y-4">
-                {intent.project_site_address && (
+          <Collapsible open={openSections.projectSite} onOpenChange={() => toggleSection('projectSite')} className="pt-6 border-t border-glass">
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 hover:bg-muted/50 rounded-lg transition-colors">
+              <h3 className="text-lg font-semibold">Project Site Information</h3>
+              {openSections.projectSite ? (
+                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              )}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Project Site Address</Label>
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <p className="text-sm">{intent.project_site_address || 'Not provided'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {intent.district && (
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Project Site Address</Label>
+                    <Label className="text-muted-foreground">District</Label>
                     <div className="p-3 bg-primary/10 rounded-lg">
-                      <p className="text-sm">{intent.project_site_address}</p>
+                      <p className="text-sm">{intent.district}</p>
                     </div>
                   </div>
                 )}
 
-                {intent.project_site_description && (
+                {intent.province && (
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Site Description</Label>
+                    <Label className="text-muted-foreground">Province</Label>
                     <div className="p-3 bg-primary/10 rounded-lg">
-                      <p className="text-sm whitespace-pre-wrap">{intent.project_site_description}</p>
+                      <p className="text-sm">{intent.province}</p>
                     </div>
                   </div>
                 )}
+              </div>
 
-                {intent.site_ownership_details && (
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Site Ownership Details</Label>
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <p className="text-sm whitespace-pre-wrap">{intent.site_ownership_details}</p>
-                    </div>
-                  </div>
-                )}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Site Description</Label>
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <p className="text-sm whitespace-pre-wrap">{intent.project_site_description || 'Not provided'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Site Ownership Details</Label>
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <p className="text-sm whitespace-pre-wrap">{intent.site_ownership_details || 'Not provided'}</p>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Government & Stakeholder Engagement */}
-          {(intent.government_agreement || intent.departments_approached || intent.approvals_required || intent.landowner_negotiation_status) && (
-            <Collapsible open={openSections.stakeholder} onOpenChange={() => toggleSection('stakeholder')} className="pt-6 border-t border-glass">
+          <Collapsible open={openSections.stakeholder} onOpenChange={() => toggleSection('stakeholder')} className="pt-6 border-t border-glass">
               <CollapsibleTrigger className="flex items-center justify-between w-full p-3 hover:bg-muted/50 rounded-lg transition-colors">
                 <h3 className="text-lg font-semibold">Government & Stakeholder Engagement</h3>
                 {openSections.stakeholder ? (
@@ -271,48 +291,38 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                 )}
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-4 space-y-4">
-                {intent.government_agreement && (
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Agreement with Government of PNG</Label>
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <p className="text-sm whitespace-pre-wrap">{intent.government_agreement}</p>
-                    </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Agreement with Government of PNG</Label>
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <p className="text-sm whitespace-pre-wrap">{intent.government_agreement || 'Not provided'}</p>
                   </div>
-                )}
+                </div>
 
-                {intent.departments_approached && (
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Departments/Statutory Bodies Approached</Label>
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <p className="text-sm whitespace-pre-wrap">{intent.departments_approached}</p>
-                    </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Departments/Statutory Bodies Approached</Label>
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <p className="text-sm whitespace-pre-wrap">{intent.departments_approached || 'Not provided'}</p>
                   </div>
-                )}
+                </div>
 
-                {intent.approvals_required && (
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Other Formal Government Approvals Required</Label>
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <p className="text-sm whitespace-pre-wrap">{intent.approvals_required}</p>
-                    </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Other Formal Government Approvals Required</Label>
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <p className="text-sm whitespace-pre-wrap">{intent.approvals_required || 'Not provided'}</p>
                   </div>
-                )}
+                </div>
 
-                {intent.landowner_negotiation_status && (
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Landowner Negotiation Status</Label>
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <p className="text-sm whitespace-pre-wrap">{intent.landowner_negotiation_status}</p>
-                    </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Landowner Negotiation Status</Label>
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <p className="text-sm whitespace-pre-wrap">{intent.landowner_negotiation_status || 'Not provided'}</p>
                   </div>
-                )}
+                </div>
               </CollapsibleContent>
             </Collapsible>
-          )}
 
           {/* Financial Information */}
-          {intent.estimated_cost_kina && (
-            <Collapsible open={openSections.financial} onOpenChange={() => toggleSection('financial')} className="pt-6 border-t border-glass">
+          <Collapsible open={openSections.financial} onOpenChange={() => toggleSection('financial')} className="pt-6 border-t border-glass">
               <CollapsibleTrigger className="flex items-center justify-between w-full p-3 hover:bg-muted/50 rounded-lg transition-colors">
                 <h3 className="text-lg font-semibold">Project Financial Information</h3>
                 {openSections.financial ? (
@@ -326,13 +336,12 @@ export function IntentRegistrationReadOnlyView({ intent }: IntentRegistrationRea
                   <Label className="text-muted-foreground">Estimated Cost of Works</Label>
                   <div className="p-3 bg-primary/10 rounded-lg">
                     <p className="text-2xl font-bold text-primary">
-                      K{intent.estimated_cost_kina.toLocaleString()}
+                      {intent.estimated_cost_kina ? `K${intent.estimated_cost_kina.toLocaleString()}` : 'Not provided'}
                     </p>
                   </div>
                 </div>
               </CollapsibleContent>
             </Collapsible>
-          )}
 
           {/* Supporting Documents Section */}
           <div className="space-y-4 pt-6 border-t border-glass">
