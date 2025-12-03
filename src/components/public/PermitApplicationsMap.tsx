@@ -68,6 +68,7 @@ export function PermitApplicationsMap({
   const eventListenersRef = useRef<Map<string, { mousemove: any; mouseleave: any }>>(new Map());
   const currentPopupRequestId = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const readOnlyRef = useRef<boolean>(readOnly);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
   const [pendingBoundary, setPendingBoundary] = useState<any>(null);
@@ -112,6 +113,11 @@ export function PermitApplicationsMap({
     districts: null,
     llgs: null
   });
+
+  // Keep readOnlyRef in sync with readOnly prop
+  useEffect(() => {
+    readOnlyRef.current = readOnly;
+  }, [readOnly]);
 
   // Helper function to forcefully remove all boundary popups
   const removeAllBoundaryPopups = useCallback(() => {
@@ -552,8 +558,13 @@ export function PermitApplicationsMap({
         // Keep popup open, don't close on mouse leave
       });
 
-      // Add click event to set coordinates
+      // Add click event to set coordinates - disabled in read-only mode
       mapInstance.on('click', (e) => {
+        // Disable marker placement in read-only mode
+        if (readOnlyRef.current) {
+          return;
+        }
+        
         // If AOI exists and is shown, restrict clicks to within AOI
         if (uploadedAOI && showUploadedAOI) {
           const { lng, lat } = e.lngLat;
