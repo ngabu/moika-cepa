@@ -512,7 +512,7 @@ export function PermitApplicationsMap({
       const initialCoords = coordinates ? [coordinates.lng, coordinates.lat] : [147.1494, -6.314993];
       marker.current = new mapboxgl.Marker({ 
         color: '#ef4444', 
-        draggable: true,
+        draggable: !readOnly,
         scale: 1.2
       })
         .setLngLat(initialCoords as [number, number]);
@@ -1329,8 +1329,8 @@ export function PermitApplicationsMap({
             lng: parseFloat(center.lng.toFixed(6))
           });
           
-          // Make marker draggable but constrained to AOI
-          marker.current.setDraggable(true);
+          // Make marker draggable but constrained to AOI (only if not readOnly)
+          marker.current.setDraggable(!readOnly);
           
           // Add marker to map if not already added
           marker.current.addTo(map.current);
