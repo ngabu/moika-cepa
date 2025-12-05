@@ -20,19 +20,24 @@ serve(async (req) => {
       invoiceId, 
       invoiceNumber, 
       amount, 
+      currency,
       clientName,
       description,
       successUrl,
       cancelUrl 
     } = await req.json();
 
-    console.log('Creating checkout session for invoice:', invoiceNumber, 'amount:', amount);
+    console.log('Creating checkout session for invoice:', invoiceNumber, 'amount:', amount, 'currency:', currency);
 
     if (!invoiceId || !amount || !successUrl || !cancelUrl) {
       throw new Error('Missing required fields');
     }
 
+    // Convert to cents/smallest currency unit
     const amountInCents = Math.round(amount * 100);
+    
+    // Stripe supports limited currencies - default to USD if currency not supported
+    const stripeCurrency = (currency || 'usd').toLowerCase();
 
     // Use native fetch instead of Stripe SDK
     const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -43,7 +48,7 @@ serve(async (req) => {
       },
       body: new URLSearchParams({
         'payment_method_types[0]': 'card',
-        'line_items[0][price_data][currency]': 'usd',
+        'line_items[0][price_data][currency]': stripeCurrency,
         'line_items[0][price_data][product_data][name]': `Invoice ${invoiceNumber}`,
         'line_items[0][price_data][product_data][description]': description || `Payment for CEPA Invoice ${invoiceNumber}`,
         'line_items[0][price_data][unit_amount]': amountInCents.toString(),
