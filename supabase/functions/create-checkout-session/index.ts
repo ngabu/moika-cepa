@@ -22,6 +22,7 @@ serve(async (req) => {
       amount, 
       currency,
       clientName,
+      clientAddress,
       description,
       successUrl,
       cancelUrl 
@@ -39,6 +40,29 @@ serve(async (req) => {
     // Stripe supports limited currencies - default to USD if currency not supported
     const stripeCurrency = (currency || 'usd').toLowerCase();
 
+    // Build form params
+    const params = new URLSearchParams({
+      'payment_method_types[0]': 'card',
+      'line_items[0][price_data][currency]': stripeCurrency,
+      'line_items[0][price_data][product_data][name]': `Invoice ${invoiceNumber}`,
+      'line_items[0][price_data][product_data][description]': description || `Payment for CEPA Invoice ${invoiceNumber}`,
+      'line_items[0][price_data][unit_amount]': amountInCents.toString(),
+      'line_items[0][quantity]': '1',
+      'mode': 'payment',
+      'success_url': `${successUrl}?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoiceId}&invoice_number=${invoiceNumber}`,
+      'cancel_url': `${cancelUrl}?invoice_id=${invoiceId}`,
+      'metadata[invoice_id]': invoiceId,
+      'metadata[invoice_number]': invoiceNumber,
+      'metadata[client_name]': clientName || '',
+      'metadata[client_address]': clientAddress || '',
+    });
+
+    // Add customer details for display on checkout page
+    if (clientName) {
+      params.append('payment_intent_data[description]', `Payment from ${clientName}${clientAddress ? ` - ${clientAddress}` : ''}`);
+      params.append('custom_text[submit][message]', `Invoice for: ${clientName}${clientAddress ? `\n${clientAddress}` : ''}`);
+    }
+
     // Use native fetch instead of Stripe SDK
     const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
@@ -46,20 +70,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${stripeSecretKey}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        'payment_method_types[0]': 'card',
-        'line_items[0][price_data][currency]': stripeCurrency,
-        'line_items[0][price_data][product_data][name]': `Invoice ${invoiceNumber}`,
-        'line_items[0][price_data][product_data][description]': description || `Payment for CEPA Invoice ${invoiceNumber}`,
-        'line_items[0][price_data][unit_amount]': amountInCents.toString(),
-        'line_items[0][quantity]': '1',
-        'mode': 'payment',
-        'success_url': `${successUrl}?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoiceId}&invoice_number=${invoiceNumber}`,
-        'cancel_url': `${cancelUrl}?invoice_id=${invoiceId}`,
-        'metadata[invoice_id]': invoiceId,
-        'metadata[invoice_number]': invoiceNumber,
-        'metadata[client_name]': clientName || '',
-      }),
+      body: params,
     });
 
     const session = await response.json();
