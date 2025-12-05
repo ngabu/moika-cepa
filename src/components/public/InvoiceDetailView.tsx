@@ -89,8 +89,13 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
 
       if (data?.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
-        // Use window.open as fallback if location.href doesn't work
-        window.location.assign(data.url);
+        // Open in new tab - more reliable in iframe environments
+        const stripeWindow = window.open(data.url, '_blank');
+        if (!stripeWindow) {
+          // Fallback if popup is blocked
+          window.location.href = data.url;
+        }
+        setIsProcessing(false);
       } else {
         throw new Error('No checkout URL returned');
       }
