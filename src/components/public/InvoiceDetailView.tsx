@@ -75,6 +75,7 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
           amount: invoice.balanceDue,
           currency: 'usd', // Using USD as Stripe doesn't support PGK
           clientName: invoice.client,
+          clientAddress: invoice.clientAddress,
           description: invoice.items.map(item => item.description).join(', '),
           successUrl: `${currentUrl}/dashboard?payment=success`,
           cancelUrl: `${currentUrl}/dashboard?payment=cancelled`
