@@ -66,12 +66,14 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
     try {
       const currentUrl = window.location.origin;
       
+      console.log('Initiating Stripe checkout for invoice:', invoice.invoice_number);
+      
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           invoiceId: invoice.id,
           invoiceNumber: invoice.invoice_number,
           amount: invoice.balanceDue,
-          currency: 'pgk',
+          currency: 'usd', // Using USD as Stripe doesn't support PGK
           clientName: invoice.client,
           description: invoice.items.map(item => item.description).join(', '),
           successUrl: `${currentUrl}/dashboard?payment=success`,
@@ -79,13 +81,16 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
         }
       });
 
+      console.log('Checkout session response:', { data, error });
+
       if (error) {
         throw new Error(error.message || 'Failed to create checkout session');
       }
 
       if (data?.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
+        console.log('Redirecting to Stripe checkout:', data.url);
+        // Use window.open as fallback if location.href doesn't work
+        window.location.assign(data.url);
       } else {
         throw new Error('No checkout URL returned');
       }
@@ -96,7 +101,6 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
         description: error.message || "Failed to initiate payment. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
   };
