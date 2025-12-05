@@ -40,11 +40,15 @@ serve(async (req) => {
     // Stripe supports limited currencies - default to USD if currency not supported
     const stripeCurrency = (currency || 'usd').toLowerCase();
 
+    // Build product name with invoice number and client details
+    const clientInfo = clientName ? `Invoice for: ${clientName}${clientAddress ? ` ${clientAddress}` : ''}` : '';
+    const productName = `Invoice ${invoiceNumber}${clientInfo ? `, ${clientInfo}` : ''}`;
+
     // Build form params
     const params = new URLSearchParams({
       'payment_method_types[0]': 'card',
       'line_items[0][price_data][currency]': stripeCurrency,
-      'line_items[0][price_data][product_data][name]': `Invoice ${invoiceNumber}`,
+      'line_items[0][price_data][product_data][name]': productName,
       'line_items[0][price_data][product_data][description]': description || `Payment for CEPA Invoice ${invoiceNumber}`,
       'line_items[0][price_data][unit_amount]': amountInCents.toString(),
       'line_items[0][quantity]': '1',
