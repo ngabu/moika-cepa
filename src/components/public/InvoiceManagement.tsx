@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye } from 'lucide-react';
+import { Search, Eye, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InvoiceDetailView } from './InvoiceDetailView';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Invoice {
   id: string;
@@ -137,11 +139,68 @@ const MOCK_INVOICES: Invoice[] = [
 ];
 
 export function InvoiceManagement() {
-  const [invoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // Handle payment success/cancellation from URL params
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    const sessionId = searchParams.get('session_id');
+    const invoiceNumber = searchParams.get('invoice_number');
+
+    if (payment === 'success' && sessionId) {
+      verifyPayment(sessionId, invoiceNumber);
+      // Clean up URL params
+      setSearchParams({});
+    } else if (payment === 'cancelled') {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your payment was cancelled. You can try again anytime.",
+        variant: "default"
+      });
+      setSearchParams({});
+    }
+  }, [searchParams]);
+
+  const verifyPayment = async (sessionId: string, invoiceNumber: string | null) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-webhook', {
+        body: { sessionId }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        // Update local invoice state to show as paid
+        setInvoices(prev => prev.map(inv => 
+          inv.invoice_number === invoiceNumber || inv.invoice_number === data.invoiceNumber
+            ? { ...inv, status: 'paid' as const, paidToDate: inv.totalInc, balanceDue: 0 }
+            : inv
+        ));
+
+        toast({
+          title: "Payment Successful!",
+          description: (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <span>Invoice {data.invoiceNumber} has been paid successfully.</span>
+            </div>
+          ),
+        });
+      }
+    } catch (error: any) {
+      console.error('Payment verification error:', error);
+      toast({
+        title: "Payment Verification",
+        description: "We're processing your payment. Please refresh if the status hasn't updated.",
+        variant: "default"
+      });
+    }
+  };
 
   const getStatusColor = (status: string) => {
     const colors = {

@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Download, Printer, CreditCard } from 'lucide-react';
+import { ArrowLeft, Download, Printer, CreditCard, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import emblem from '@/assets/png-emblem.png';
 
 interface InvoiceItem {
@@ -37,6 +40,9 @@ interface InvoiceDetailProps {
 }
 
 export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
+
   const handlePrint = () => {
     window.print();
   };
@@ -44,6 +50,55 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
   const handleDownload = () => {
     // Download functionality would be implemented here
     console.log('Download invoice');
+  };
+
+  const handleStripePayment = async () => {
+    if (invoice.balanceDue <= 0) {
+      toast({
+        title: "No Payment Required",
+        description: "This invoice has already been paid.",
+        variant: "default"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const currentUrl = window.location.origin;
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoice_number,
+          amount: invoice.balanceDue,
+          currency: 'pgk',
+          clientName: invoice.client,
+          description: invoice.items.map(item => item.description).join(', '),
+          successUrl: `${currentUrl}/dashboard?payment=success`,
+          cancelUrl: `${currentUrl}/dashboard?payment=cancelled`
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to create checkout session');
+      }
+
+      if (data?.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Error",
+        description: error.message || "Failed to initiate payment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -63,10 +118,18 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
             <Printer className="w-4 h-4 mr-2" />
             Print
           </Button>
-          {invoice.status !== 'paid' && (
-            <Button onClick={onPayment} className="bg-gradient-to-r from-forest-600 to-nature-600">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Online Payment
+          {invoice.status !== 'paid' && invoice.balanceDue > 0 && (
+            <Button 
+              onClick={handleStripePayment} 
+              className="bg-gradient-to-r from-forest-600 to-nature-600"
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CreditCard className="w-4 h-4 mr-2" />
+              )}
+              {isProcessing ? 'Processing...' : 'Online Payment'}
             </Button>
           )}
         </div>

@@ -53,8 +53,18 @@ export function IntentBoundaryMapDisplay({ projectBoundary, activityLocation, pr
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-streets-v12',
       center: [center.lng, center.lat],
-      zoom: 14, // Close enough to see street names
+      zoom: 14,
+      interactive: true,
+      cooperativeGestures: false,
     });
+
+    // Explicitly enable all interactions after map init
+    map.current.scrollZoom.enable();
+    map.current.dragPan.enable();
+    map.current.dragRotate.enable();
+    map.current.touchZoomRotate.enable();
+    map.current.keyboard.enable();
+    map.current.doubleClickZoom.enable();
 
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -204,6 +214,7 @@ export function IntentBoundaryMapDisplay({ projectBoundary, activityLocation, pr
         <div 
           ref={mapContainer} 
           className="h-96 w-full rounded-lg border border-border overflow-hidden"
+          style={{ touchAction: 'none' }}
         />
         {areaInfo && (
           <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
