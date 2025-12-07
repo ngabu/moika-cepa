@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { PublicSidebar } from '@/components/public/PublicSidebar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -13,7 +14,6 @@ import { ApplicationDetailDialog } from '@/components/public/ApplicationDetailDi
 import { ProfileSettings } from '@/components/public/ProfileSettings';
 import { AppSettings } from '@/components/public/AppSettings';
 import { ComprehensivePermitForm } from '@/components/public/ComprehensivePermitForm';
-import { PermitApplicationsMap } from '@/components/public/PermitApplicationsMap';
 import PermitAmalgamation from '@/pages/permit-management/PermitAmalgamation';
 import PermitAmendment from '@/pages/permit-management/PermitAmendment';
 import PermitCompliance from '@/pages/permit-management/PermitCompliance';
@@ -35,6 +35,17 @@ export default function PublicDashboard() {
   const [showApplicationDetail, setShowApplicationDetail] = useState(false);
   const { user, profile } = useAuth();
   const { unreadCount } = useUserNotifications(user?.id);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Handle tab navigation from URL parameter
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+      // Clear the tab param from URL
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     // Listen for navigation events from notifications

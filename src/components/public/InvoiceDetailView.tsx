@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Download, Printer, CreditCard, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, Printer, CreditCard, Loader2, Receipt } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import emblem from '@/assets/png-emblem.png';
@@ -34,6 +34,7 @@ interface InvoiceDetailProps {
     paidToDate: number;
     balanceDue: number;
     status: string;
+    receiptUrl?: string | null;
   };
   onBack: () => void;
   onPayment: () => void;
@@ -72,13 +73,19 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
         body: {
           invoiceId: invoice.id,
           invoiceNumber: invoice.invoice_number,
-          amount: invoice.balanceDue,
+          invoiceDate: invoice.date,
           currency: 'usd', // Using USD as Stripe doesn't support PGK
           clientName: invoice.client,
           clientAddress: invoice.clientAddress,
-          description: invoice.items.map(item => item.description).join(', '),
-          successUrl: `${currentUrl}/dashboard?payment=success`,
-          cancelUrl: `${currentUrl}/dashboard?payment=cancelled`
+          items: invoice.items,
+          subtotal: invoice.subtotal,
+          freight: invoice.freight,
+          gst: invoice.gst,
+          totalInc: invoice.totalInc,
+          paidToDate: invoice.paidToDate,
+          balanceDue: invoice.balanceDue,
+          successUrl: `${currentUrl}/payment-callback?payment=success`,
+          cancelUrl: `${currentUrl}/payment-callback?payment=cancelled`
         }
       });
 
@@ -90,13 +97,13 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
 
       if (data?.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
-        // Open in new tab - more reliable in iframe environments
-        const stripeWindow = window.open(data.url, '_blank');
-        if (!stripeWindow) {
-          // Fallback if popup is blocked
-          window.location.href = data.url;
-        }
+        // Open Stripe checkout in a new tab to avoid iframe restrictions
+        window.open(data.url, '_blank');
         setIsProcessing(false);
+        toast({
+          title: "Checkout Opened",
+          description: "Stripe checkout has opened in a new tab. Complete your payment there.",
+        });
       } else {
         throw new Error('No checkout URL returned');
       }
@@ -140,6 +147,15 @@ export function InvoiceDetailView({ invoice, onBack, onPayment }: InvoiceDetailP
                 <CreditCard className="w-4 h-4 mr-2" />
               )}
               {isProcessing ? 'Processing...' : 'Online Payment'}
+            </Button>
+          )}
+          {invoice.status === 'paid' && invoice.receiptUrl && (
+            <Button 
+              onClick={() => window.open(invoice.receiptUrl!, '_blank')}
+              className="bg-gradient-to-r from-green-600 to-emerald-600"
+            >
+              <Receipt className="w-4 h-4 mr-2" />
+              View Receipt
             </Button>
           )}
         </div>

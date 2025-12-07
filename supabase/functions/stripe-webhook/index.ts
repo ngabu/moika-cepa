@@ -8,6 +8,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('stripe-webhook called, method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,6 +18,7 @@ serve(async (req) => {
   try {
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeSecretKey) {
+      console.error('Stripe is not configured');
       throw new Error('Stripe is not configured');
     }
 
@@ -23,9 +26,13 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    const { sessionId } = await req.json();
+    const body = await req.json();
+    const { sessionId } = body;
+    
+    console.log('Request body:', JSON.stringify(body));
     
     if (!sessionId) {
+      console.error('Session ID is required');
       throw new Error('Session ID is required');
     }
 
@@ -33,8 +40,10 @@ serve(async (req) => {
 
     // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log('Session retrieved, payment_status:', session.payment_status);
 
     if (session.payment_status !== 'paid') {
+      console.log('Payment not completed, status:', session.payment_status);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -60,8 +69,23 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Get the receipt URL from payment intent
+    let receiptUrl = null;
+    if (session.payment_intent) {
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent as string, {
+          expand: ['latest_charge']
+        });
+        const charge = paymentIntent.latest_charge as Stripe.Charge;
+        receiptUrl = charge?.receipt_url || null;
+        console.log('Receipt URL retrieved:', receiptUrl);
+      } catch (e) {
+        console.log('Could not retrieve receipt URL:', e);
+      }
+    }
+
     // Update the financial transaction if it exists
-    const { error: updateError } = await supabase
+    const { data: txData, error: updateError } = await supabase
       .from('financial_transactions')
       .update({
         status: 'paid',
@@ -69,23 +93,48 @@ serve(async (req) => {
         payment_method: 'stripe',
         payment_reference: session.payment_intent as string,
       })
-      .eq('transaction_number', invoiceNumber);
+      .eq('transaction_number', invoiceNumber)
+      .select();
 
     if (updateError) {
       console.log('Note: Could not update financial_transactions:', updateError.message);
+    } else {
+      console.log('Financial transaction updated:', txData);
     }
 
+    // Update the invoices table with receipt URL and status
+    const { data: invData, error: invoiceUpdateError } = await supabase
+      .from('invoices')
+      .update({
+        status: 'paid',
+        payment_status: 'paid',
+        paid_date: new Date().toISOString(),
+        document_path: receiptUrl,
+      })
+      .eq('invoice_number', invoiceNumber)
+      .select();
+
+    if (invoiceUpdateError) {
+      console.log('Note: Could not update invoices:', invoiceUpdateError.message);
+    } else {
+      console.log('Invoice updated:', invData);
+    }
+
+    const responseData = { 
+      success: true, 
+      message: 'Payment verified successfully',
+      invoiceId,
+      invoiceNumber,
+      amountPaid,
+      paymentIntent: session.payment_intent,
+      receiptUrl,
+      customerEmail: session.customer_details?.email
+    };
+    
+    console.log('Returning success response:', JSON.stringify(responseData));
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Payment verified successfully',
-        invoiceId,
-        invoiceNumber,
-        amountPaid,
-        paymentIntent: session.payment_intent,
-        receiptUrl: session.receipt_url || null,
-        customerEmail: session.customer_details?.email
-      }),
+      JSON.stringify(responseData),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 

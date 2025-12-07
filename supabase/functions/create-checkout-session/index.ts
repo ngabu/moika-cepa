@@ -5,6 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface InvoiceItem {
+  quantity: number;
+  itemCode: string;
+  description: string;
+  unitPrice: number;
+  disc: number;
+  totalPrice: number;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,53 +27,103 @@ serve(async (req) => {
 
     const { 
       invoiceId, 
-      invoiceNumber, 
-      amount, 
+      invoiceNumber,
+      invoiceDate,
       currency,
       clientName,
       clientAddress,
-      description,
+      items,
+      subtotal,
+      freight,
+      gst,
+      totalInc,
+      paidToDate,
+      balanceDue,
       successUrl,
       cancelUrl 
     } = await req.json();
 
-    console.log('Creating checkout session for invoice:', invoiceNumber, 'amount:', amount, 'currency:', currency);
+    console.log('Creating checkout session for invoice:', invoiceNumber, 'balance due:', balanceDue);
 
-    if (!invoiceId || !amount || !successUrl || !cancelUrl) {
+    if (!invoiceId || !balanceDue || !successUrl || !cancelUrl) {
       throw new Error('Missing required fields');
     }
 
-    // Convert to cents/smallest currency unit
-    const amountInCents = Math.round(amount * 100);
-    
     // Stripe supports limited currencies - default to USD if currency not supported
     const stripeCurrency = (currency || 'usd').toLowerCase();
 
-    // Build product name with invoice number and client details
-    const clientInfo = clientName ? `Invoice for: ${clientName}${clientAddress ? ` ${clientAddress}` : ''}` : '';
-    const productName = `Invoice ${invoiceNumber}${clientInfo ? `, ${clientInfo}` : ''}`;
+    // Build form params with multiple line items
+    const params = new URLSearchParams();
+    params.append('payment_method_types[0]', 'card');
+    params.append('mode', 'payment');
+    params.append('success_url', `${successUrl}?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoiceId}&invoice_number=${invoiceNumber}`);
+    params.append('cancel_url', `${cancelUrl}?invoice_id=${invoiceId}`);
+    
+    // Metadata
+    params.append('metadata[invoice_id]', invoiceId);
+    params.append('metadata[invoice_number]', invoiceNumber || '');
+    params.append('metadata[client_name]', clientName || '');
+    params.append('metadata[invoice_date]', invoiceDate || '');
 
-    // Build form params
-    const params = new URLSearchParams({
-      'payment_method_types[0]': 'card',
-      'line_items[0][price_data][currency]': stripeCurrency,
-      'line_items[0][price_data][product_data][name]': productName,
-      'line_items[0][price_data][product_data][description]': description || `Payment for CEPA Invoice ${invoiceNumber}`,
-      'line_items[0][price_data][unit_amount]': amountInCents.toString(),
-      'line_items[0][quantity]': '1',
-      'mode': 'payment',
-      'success_url': `${successUrl}?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoiceId}&invoice_number=${invoiceNumber}`,
-      'cancel_url': `${cancelUrl}?invoice_id=${invoiceId}`,
-      'metadata[invoice_id]': invoiceId,
-      'metadata[invoice_number]': invoiceNumber,
-      'metadata[client_name]': clientName || '',
-      'metadata[client_address]': clientAddress || '',
-    });
+    let lineIndex = 0;
 
-    // Add customer details for display on checkout page
+    // Add each invoice item as a separate line item
+    if (items && Array.isArray(items) && items.length > 0) {
+      for (const item of items as InvoiceItem[]) {
+        const itemAmount = Math.round(item.totalPrice * 100); // Convert to cents
+        if (itemAmount > 0) {
+          params.append(`line_items[${lineIndex}][price_data][currency]`, stripeCurrency);
+          params.append(`line_items[${lineIndex}][price_data][product_data][name]`, item.description);
+          params.append(`line_items[${lineIndex}][price_data][product_data][description]`, `Item Code: ${item.itemCode} | Unit Price: K${item.unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+          params.append(`line_items[${lineIndex}][price_data][unit_amount]`, itemAmount.toString());
+          params.append(`line_items[${lineIndex}][quantity]`, item.quantity.toString());
+          lineIndex++;
+        }
+      }
+    }
+
+    // Add freight as a line item if applicable
+    if (freight && freight > 0) {
+      const freightAmount = Math.round(freight * 100);
+      params.append(`line_items[${lineIndex}][price_data][currency]`, stripeCurrency);
+      params.append(`line_items[${lineIndex}][price_data][product_data][name]`, 'Freight');
+      params.append(`line_items[${lineIndex}][price_data][product_data][description]`, 'Shipping and handling charges');
+      params.append(`line_items[${lineIndex}][price_data][unit_amount]`, freightAmount.toString());
+      params.append(`line_items[${lineIndex}][quantity]`, '1');
+      lineIndex++;
+    }
+
+    // Add GST as a line item if applicable
+    if (gst && gst > 0) {
+      const gstAmount = Math.round(gst * 100);
+      params.append(`line_items[${lineIndex}][price_data][currency]`, stripeCurrency);
+      params.append(`line_items[${lineIndex}][price_data][product_data][name]`, 'GST (10%)');
+      params.append(`line_items[${lineIndex}][price_data][product_data][description]`, 'Goods and Services Tax');
+      params.append(`line_items[${lineIndex}][price_data][unit_amount]`, gstAmount.toString());
+      params.append(`line_items[${lineIndex}][quantity]`, '1');
+      lineIndex++;
+    }
+
+    // If there's already paid amount, add a discount/credit line item
+    if (paidToDate && paidToDate > 0) {
+      // We'll handle this via a coupon or just note in the description
+      // For now, the balanceDue should already reflect this
+    }
+
+    // Fallback: if no line items were added, create a single summary line item
+    if (lineIndex === 0) {
+      const amountInCents = Math.round(balanceDue * 100);
+      params.append(`line_items[0][price_data][currency]`, stripeCurrency);
+      params.append(`line_items[0][price_data][product_data][name]`, `Invoice ${invoiceNumber}`);
+      params.append(`line_items[0][price_data][product_data][description]`, `Payment for CEPA Invoice ${invoiceNumber} - ${clientName || 'Customer'}`);
+      params.append(`line_items[0][price_data][unit_amount]`, amountInCents.toString());
+      params.append(`line_items[0][quantity]`, '1');
+    }
+
+    // Add custom text with invoice details
     if (clientName) {
-      params.append('payment_intent_data[description]', `Payment from ${clientName}${clientAddress ? ` - ${clientAddress}` : ''}`);
-      params.append('custom_text[submit][message]', `Invoice for: ${clientName}${clientAddress ? `\n${clientAddress}` : ''}`);
+      params.append('payment_intent_data[description]', `Invoice ${invoiceNumber} - ${clientName}`);
+      params.append('custom_text[submit][message]', `Invoice #${invoiceNumber}\nClient: ${clientName}${clientAddress ? `\n${clientAddress}` : ''}\nBalance Due: K${balanceDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
     }
 
     // Use native fetch instead of Stripe SDK
@@ -84,7 +143,7 @@ serve(async (req) => {
       throw new Error(session.error?.message || 'Failed to create checkout session');
     }
 
-    console.log('Checkout session created:', session.id);
+    console.log('Checkout session created:', session.id, 'with', lineIndex, 'line items');
 
     return new Response(
       JSON.stringify({ sessionId: session.id, url: session.url }),

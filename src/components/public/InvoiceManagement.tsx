@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye, CheckCircle } from 'lucide-react';
+import { Search, Eye, Receipt } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InvoiceDetailView } from './InvoiceDetailView';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Invoice {
   id: string;
@@ -39,6 +37,7 @@ interface Invoice {
   permitType: string;
   activityLevel: string;
   prescribedActivity: string;
+  receiptUrl?: string | null;
 }
 
 // Mock data for 2 invoices with 3 permit applications
@@ -143,64 +142,73 @@ export function InvoiceManagement() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
 
-  // Handle payment success/cancellation from URL params
+  // Listen for payment success events from PublicDashboard or localStorage
   useEffect(() => {
-    const payment = searchParams.get('payment');
-    const sessionId = searchParams.get('session_id');
-    const invoiceNumber = searchParams.get('invoice_number');
+    const handlePaymentSuccess = (event: CustomEvent<{ invoiceNumber: string; receiptUrl: string | null }>) => {
+      const { invoiceNumber, receiptUrl } = event.detail;
+      console.log('Payment success event received:', invoiceNumber, receiptUrl);
+      
+      // Update local invoice state to show as paid with receipt URL
+      setInvoices(prev => prev.map(inv => 
+        inv.invoice_number === invoiceNumber
+          ? { ...inv, status: 'paid' as const, paidToDate: inv.totalInc, balanceDue: 0, receiptUrl: receiptUrl }
+          : inv
+      ));
+    };
 
-    if (payment === 'success' && sessionId) {
-      verifyPayment(sessionId, invoiceNumber);
-      // Clean up URL params
-      setSearchParams({});
-    } else if (payment === 'cancelled') {
-      toast({
-        title: "Payment Cancelled",
-        description: "Your payment was cancelled. You can try again anytime.",
-        variant: "default"
-      });
-      setSearchParams({});
-    }
-  }, [searchParams]);
+    // Check localStorage for payment completion from payment callback page
+    const checkPaymentCompletion = () => {
+      const paymentData = localStorage.getItem('payment_completed');
+      if (paymentData) {
+        try {
+          const { invoiceNumber, receiptUrl, timestamp } = JSON.parse(paymentData);
+          // Only process if the payment was completed recently (within 5 minutes)
+          if (Date.now() - timestamp < 5 * 60 * 1000) {
+            console.log('Payment completion detected from localStorage:', invoiceNumber);
+            
+            setInvoices(prev => prev.map(inv => 
+              inv.invoice_number === invoiceNumber
+                ? { ...inv, status: 'paid' as const, paidToDate: inv.totalInc, balanceDue: 0, receiptUrl: receiptUrl }
+                : inv
+            ));
 
-  const verifyPayment = async (sessionId: string, invoiceNumber: string | null) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('stripe-webhook', {
-        body: { sessionId }
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        // Update local invoice state to show as paid
-        setInvoices(prev => prev.map(inv => 
-          inv.invoice_number === invoiceNumber || inv.invoice_number === data.invoiceNumber
-            ? { ...inv, status: 'paid' as const, paidToDate: inv.totalInc, balanceDue: 0 }
-            : inv
-        ));
-
-        toast({
-          title: "Payment Successful!",
-          description: (
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              <span>Invoice {data.invoiceNumber} has been paid successfully.</span>
-            </div>
-          ),
-        });
+            toast({
+              title: "Payment Successful",
+              description: `Invoice ${invoiceNumber} has been marked as paid.`,
+            });
+          }
+          // Clear the localStorage after processing
+          localStorage.removeItem('payment_completed');
+        } catch (e) {
+          console.error('Error parsing payment completion data:', e);
+        }
       }
-    } catch (error: any) {
-      console.error('Payment verification error:', error);
-      toast({
-        title: "Payment Verification",
-        description: "We're processing your payment. Please refresh if the status hasn't updated.",
-        variant: "default"
-      });
-    }
-  };
+    };
+
+    // Check on mount
+    checkPaymentCompletion();
+
+    // Listen for storage events (when payment callback updates localStorage)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'payment_completed' && e.newValue) {
+        checkPaymentCompletion();
+      }
+    };
+
+    // Also poll periodically while this component is visible (for same-tab updates)
+    const pollInterval = setInterval(checkPaymentCompletion, 2000);
+
+    window.addEventListener('payment-success', handlePaymentSuccess as EventListener);
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('payment-success', handlePaymentSuccess as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(pollInterval);
+    };
+  }, [toast]);
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -324,14 +332,27 @@ export function InvoiceManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedInvoice(invoice)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedInvoice(invoice)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
+                      {invoice.status === 'paid' && invoice.receiptUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-600 border-green-600 hover:bg-green-50"
+                          onClick={() => window.open(invoice.receiptUrl!, '_blank')}
+                        >
+                          <Receipt className="w-4 h-4 mr-1" />
+                          Receipt
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
