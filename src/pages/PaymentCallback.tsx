@@ -52,6 +52,13 @@ export default function PaymentCallback() {
             });
             setStatus('success');
 
+            // Store in localStorage for parent window to pick up
+            localStorage.setItem('payment_completed', JSON.stringify({
+              invoiceNumber: data.invoiceNumber || invoiceNumber,
+              receiptUrl: data.receiptUrl,
+              timestamp: Date.now()
+            }));
+
             // Notify parent window/opener if exists
             if (window.opener && !window.opener.closed) {
               window.opener.postMessage({
@@ -61,12 +68,12 @@ export default function PaymentCallback() {
               }, window.location.origin);
             }
 
-            // Store in localStorage for parent window to pick up
-            localStorage.setItem('payment_completed', JSON.stringify({
-              invoiceNumber: data.invoiceNumber || invoiceNumber,
-              receiptUrl: data.receiptUrl,
-              timestamp: Date.now()
-            }));
+            // Auto-close after 3 seconds if this is a popup/new tab
+            setTimeout(() => {
+              if (window.opener && !window.opener.closed) {
+                window.close();
+              }
+            }, 3000);
           } else {
             setError(data?.message || 'Payment verification pending');
             setStatus('error');
@@ -146,6 +153,9 @@ export default function PaymentCallback() {
               >
                 Close & Return to Dashboard
               </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                This window will close automatically in a few seconds...
+              </p>
             </div>
 
             <p className="text-sm text-muted-foreground">
