@@ -467,11 +467,14 @@ export function IntentRegistrationNew() {
 
         <TabsContent value="mapping">
           <PermitApplicationsMap 
+            key={`map-${currentDraftId || 'new'}`}
             showAllApplications={false}
             existingBoundary={projectBoundary}
             onBoundarySave={handleBoundaryUpdate}
             coordinates={coordinates || undefined}
             onCoordinatesChange={handleCoordinatesChange}
+            customTitle="Papua New Guinea Map with GIS Layers"
+            customDescription="Upload your Area of Interest (AOI) file in KML or GeoJSON format to map your proposed project site. The system will automatically detect the location (District, Province, LLG) and calculate the project area."
           />
         </TabsContent>
 

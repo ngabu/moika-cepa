@@ -244,8 +244,9 @@ export function InvoiceManagement() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Invoice Number</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>Entity</TableHead>
-                      <TableHead>Permit</TableHead>
+                      <TableHead>Reference</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Due Date</TableHead>
                       <TableHead>Status</TableHead>
@@ -256,8 +257,21 @@ export function InvoiceManagement() {
                     {filteredInvoices.map((invoice) => (
                       <TableRow key={invoice.id}>
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={
+                            invoice.invoice_type === 'inspection_fee' 
+                              ? 'border-blue-300 text-blue-700 bg-blue-50'
+                              : 'border-green-300 text-green-700 bg-green-50'
+                          }>
+                            {invoice.invoice_type === 'inspection_fee' ? 'Inspection' : 'Permit Fee'}
+                          </Badge>
+                        </TableCell>
                         <TableCell>{invoice.entity?.name || 'N/A'}</TableCell>
-                        <TableCell className="max-w-xs truncate">{invoice.permit?.title || 'N/A'}</TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {invoice.invoice_type === 'inspection_fee' && invoice.inspection
+                            ? `${invoice.inspection.inspection_type} - ${invoice.inspection.province || 'N/A'}`
+                            : invoice.permit?.title || 'N/A'}
+                        </TableCell>
                         <TableCell className="font-semibold">K{invoice.amount.toLocaleString()}</TableCell>
                         <TableCell>{format(new Date(invoice.due_date), 'MMM dd, yyyy')}</TableCell>
                         <TableCell>

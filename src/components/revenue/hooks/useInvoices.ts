@@ -18,6 +18,8 @@ export interface Invoice {
   follow_up_date: string | null;
   follow_up_notes: string | null;
   paid_date?: string;
+  invoice_type?: string;
+  inspection_id?: string | null;
   permit?: {
     title: string;
     permit_number: string | null;
@@ -26,6 +28,13 @@ export interface Invoice {
   entity?: {
     name: string;
     entity_type: string;
+  };
+  inspection?: {
+    id: string;
+    inspection_type: string;
+    scheduled_date: string;
+    province: string | null;
+    number_of_days: number;
   };
   assigned_officer?: {
     full_name: string | null;
@@ -52,6 +61,18 @@ export function useInvoices() {
             entity_name,
             entity_type
           ),
+          inspections (
+            id,
+            inspection_type,
+            scheduled_date,
+            province,
+            number_of_days
+          ),
+          entities (
+            id,
+            name,
+            entity_type
+          ),
           profiles!assigned_officer_id (
             id,
             full_name,
@@ -75,18 +96,27 @@ export function useInvoices() {
           permit_number: (invoice.permit_applications as any).permit_number,
           permit_type: (invoice.permit_applications as any).permit_type
         } : undefined,
-        entity: invoice.permit_applications && typeof invoice.permit_applications === 'object' ? {
+        entity: invoice.entities && typeof invoice.entities === 'object' ? {
+          name: (invoice.entities as any).name,
+          entity_type: (invoice.entities as any).entity_type
+        } : (invoice.permit_applications && typeof invoice.permit_applications === 'object' ? {
           name: (invoice.permit_applications as any).entity_name,
           entity_type: (invoice.permit_applications as any).entity_type
+        } : undefined),
+        inspection: invoice.inspections && typeof invoice.inspections === 'object' ? {
+          id: (invoice.inspections as any).id,
+          inspection_type: (invoice.inspections as any).inspection_type,
+          scheduled_date: (invoice.inspections as any).scheduled_date,
+          province: (invoice.inspections as any).province,
+          number_of_days: (invoice.inspections as any).number_of_days
         } : undefined,
         assigned_officer: invoice.profiles && typeof invoice.profiles === 'object' && invoice.profiles !== null ? {
           full_name: (invoice.profiles as any).full_name,
           email: (invoice.profiles as any).email
         } : undefined,
         payment_status: invoice.status,
-        assigned_officer_id: invoice.user_id,
-        follow_up_date: null,
-        follow_up_notes: null
+        follow_up_date: invoice.follow_up_date,
+        follow_up_notes: invoice.follow_up_notes
       }));
       
       setInvoices(transformedData);

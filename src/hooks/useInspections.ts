@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { generateInspectionInvoiceNumber } from '@/components/compliance/InspectionInvoiceGenerator';
 
 export interface Inspection {
   id: string;
@@ -26,6 +27,8 @@ export interface Inspection {
   permit_number?: string;
   permit_title?: string;
   entity_name?: string;
+  entity_id?: string;
+  user_id?: string;
   inspector_name?: string | null;
 }
 
@@ -54,7 +57,8 @@ export function useInspections() {
             permit_number,
             title,
             entity_id,
-            entities(name)
+            user_id,
+            entities(id, name)
           )
         `)
         .order('scheduled_date', { ascending: false });
@@ -91,6 +95,8 @@ export function useInspections() {
         permit_number: inspection.permit_applications?.permit_number,
         permit_title: inspection.permit_applications?.title,
         entity_name: inspection.permit_applications?.entities?.name,
+        entity_id: inspection.permit_applications?.entity_id,
+        user_id: inspection.permit_applications?.user_id,
         inspector_name: null
       })) || [];
 
@@ -105,7 +111,23 @@ export function useInspections() {
 
   const createInspection = async (inspectionData: Partial<Inspection>) => {
     try {
-      const { error } = await supabase
+      // Calculate total travel cost
+      const totalTravelCost = 
+        (inspectionData.accommodation_cost || 0) + 
+        (inspectionData.transportation_cost || 0) + 
+        (inspectionData.daily_allowance || 0);
+
+      // First, get the permit details for creating invoice
+      const { data: permitData, error: permitError } = await supabase
+        .from('permit_applications')
+        .select('id, permit_number, title, entity_id, user_id, entities(id, name)')
+        .eq('id', inspectionData.permit_application_id)
+        .single();
+
+      if (permitError) throw permitError;
+
+      // Create the inspection
+      const { data: newInspection, error } = await supabase
         .from('inspections')
         .insert({
           permit_application_id: inspectionData.permit_application_id,
@@ -117,15 +139,48 @@ export function useInspections() {
           accommodation_cost: inspectionData.accommodation_cost || 0,
           transportation_cost: inspectionData.transportation_cost || 0,
           daily_allowance: inspectionData.daily_allowance || 0,
+          total_travel_cost: totalTravelCost,
           number_of_days: inspectionData.number_of_days || 1,
           province: inspectionData.province,
           permit_category: inspectionData.permit_category,
           created_by: profile?.user_id
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      toast.success('Inspection scheduled successfully');
+      // Create invoice for the inspection if there are travel costs
+      if (totalTravelCost > 0 && newInspection) {
+        const invoiceNumber = generateInspectionInvoiceNumber();
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30); // 30 days from now
+
+        const { error: invoiceError } = await supabase
+          .from('invoices')
+          .insert({
+            user_id: permitData.user_id,
+            permit_id: inspectionData.permit_application_id,
+            entity_id: permitData.entity_id,
+            inspection_id: newInspection.id,
+            invoice_number: invoiceNumber,
+            invoice_type: 'inspection_fee',
+            amount: totalTravelCost,
+            currency: 'PGK',
+            status: 'unpaid',
+            due_date: dueDate.toISOString()
+          });
+
+        if (invoiceError) {
+          console.error('Error creating inspection invoice:', invoiceError);
+          toast.error('Inspection scheduled but invoice creation failed');
+        } else {
+          toast.success('Inspection scheduled and invoice generated successfully');
+        }
+      } else {
+        toast.success('Inspection scheduled successfully');
+      }
+
       await fetchInspections();
       return true;
     } catch (error) {
