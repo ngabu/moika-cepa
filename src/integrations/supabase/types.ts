@@ -1899,6 +1899,7 @@ export type Database = {
           activity_id: string | null
           amount: number
           assigned_officer_id: string | null
+          cepa_receipt_path: string | null
           created_at: string
           currency: string
           document_path: string | null
@@ -1915,13 +1916,19 @@ export type Database = {
           payment_status: string | null
           permit_id: string | null
           status: string
+          stripe_receipt_url: string | null
           updated_at: string
           user_id: string
+          verification_notes: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           activity_id?: string | null
           amount: number
           assigned_officer_id?: string | null
+          cepa_receipt_path?: string | null
           created_at?: string
           currency?: string
           document_path?: string | null
@@ -1938,13 +1945,19 @@ export type Database = {
           payment_status?: string | null
           permit_id?: string | null
           status?: string
+          stripe_receipt_url?: string | null
           updated_at?: string
           user_id: string
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           activity_id?: string | null
           amount?: number
           assigned_officer_id?: string | null
+          cepa_receipt_path?: string | null
           created_at?: string
           currency?: string
           document_path?: string | null
@@ -1961,8 +1974,13 @@ export type Database = {
           payment_status?: string | null
           permit_id?: string | null
           status?: string
+          stripe_receipt_url?: string | null
           updated_at?: string
           user_id?: string
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {

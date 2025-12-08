@@ -20,6 +20,15 @@ export interface Invoice {
   paid_date?: string;
   invoice_type?: string;
   inspection_id?: string | null;
+  intent_registration_id?: string | null;
+  document_path?: string | null;
+  // Verification fields
+  verification_status?: string | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  verification_notes?: string | null;
+  cepa_receipt_path?: string | null;
+  stripe_receipt_url?: string | null;
   permit?: {
     title: string;
     permit_number: string | null;
@@ -35,6 +44,11 @@ export interface Invoice {
     scheduled_date: string;
     province: string | null;
     number_of_days: number;
+  };
+  intent_registration?: {
+    id: string;
+    activity_description: string;
+    status: string;
   };
   assigned_officer?: {
     full_name: string | null;
@@ -67,6 +81,11 @@ export function useInvoices() {
             scheduled_date,
             province,
             number_of_days
+          ),
+          intent_registrations (
+            id,
+            activity_description,
+            status
           ),
           entities (
             id,
@@ -109,6 +128,11 @@ export function useInvoices() {
           scheduled_date: (invoice.inspections as any).scheduled_date,
           province: (invoice.inspections as any).province,
           number_of_days: (invoice.inspections as any).number_of_days
+        } : undefined,
+        intent_registration: invoice.intent_registrations && typeof invoice.intent_registrations === 'object' ? {
+          id: (invoice.intent_registrations as any).id,
+          activity_description: (invoice.intent_registrations as any).activity_description,
+          status: (invoice.intent_registrations as any).status
         } : undefined,
         assigned_officer: invoice.profiles && typeof invoice.profiles === 'object' && invoice.profiles !== null ? {
           full_name: (invoice.profiles as any).full_name,

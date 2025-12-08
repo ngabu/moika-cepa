@@ -70,16 +70,21 @@ export function InvoiceManagement() {
     );
   }, [entities, entitySearchValue]);
 
-  const filteredInvoices = useMemo(() => {
+  // Filter for new/unpaid invoices only (not paid)
+  const unpaidInvoices = useMemo(() => {
     if (!invoices || !Array.isArray(invoices)) return [];
-    return invoices.filter(invoice => {
+    return invoices.filter(invoice => invoice.status !== 'paid' && invoice.payment_status !== 'paid');
+  }, [invoices]);
+
+  const filteredInvoices = useMemo(() => {
+    return unpaidInvoices.filter(invoice => {
       const matchesSearch = 
         invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.entity?.name.toLowerCase().includes(searchTerm.toLowerCase());
+        invoice.entity?.name?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [invoices, searchTerm, statusFilter]);
+  }, [unpaidInvoices, searchTerm, statusFilter]);
 
   const handleCreateInvoice = async () => {
     try {
@@ -157,7 +162,7 @@ export function InvoiceManagement() {
                   <FileText className="w-5 h-5" />
                   Invoice Management
                 </CardTitle>
-                <CardDescription>Create, manage, and track permit fee invoices</CardDescription>
+                <CardDescription>Create, manage, and track new and unpaid invoices</CardDescription>
               </div>
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -185,7 +190,7 @@ export function InvoiceManagement() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
@@ -193,34 +198,26 @@ export function InvoiceManagement() {
             </div>
 
             {/* Invoice Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card className="border-primary/20">
                 <CardContent className="pt-4">
-                  <p className="text-sm text-muted-foreground">Total Invoices</p>
-                  <p className="text-2xl font-bold text-foreground">{invoices?.length || 0}</p>
-                </CardContent>
-              </Card>
-              <Card className="border-primary/20">
-                <CardContent className="pt-4">
-                  <p className="text-sm text-muted-foreground">Unpaid</p>
-                  <p className="text-2xl font-bold text-amber-600">
-                    {invoices?.filter(inv => inv.status !== 'paid').length || 0}
-                  </p>
+                  <p className="text-sm text-muted-foreground">Unpaid Invoices</p>
+                  <p className="text-2xl font-bold text-foreground">{unpaidInvoices?.length || 0}</p>
                 </CardContent>
               </Card>
               <Card className="border-primary/20">
                 <CardContent className="pt-4">
                   <p className="text-sm text-muted-foreground">Total Outstanding</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    K{(invoices?.filter(inv => inv.status !== 'paid').reduce((sum, inv) => sum + inv.amount, 0) || 0).toLocaleString()}
+                  <p className="text-2xl font-bold text-amber-600">
+                    K{(unpaidInvoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0).toLocaleString()}
                   </p>
                 </CardContent>
               </Card>
               <Card className="border-primary/20">
                 <CardContent className="pt-4">
-                  <p className="text-sm text-muted-foreground">Collected</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    K{(invoices?.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.amount, 0) || 0).toLocaleString()}
+                  <p className="text-sm text-muted-foreground">Overdue</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {unpaidInvoices?.filter(inv => inv.status === 'overdue').length || 0}
                   </p>
                 </CardContent>
               </Card>
